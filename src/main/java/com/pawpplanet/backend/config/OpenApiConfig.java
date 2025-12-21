@@ -25,7 +25,7 @@ public class OpenApiConfig {
                         .contact(new Contact()
                                 .name("PawPlanet Team")
                                 .email("support@pawpplanet.com")
-                                .url("https://github.com/levietducanh99/PawpPanet-backend"))
+                                .url("https://github.com/levietducanh99/PawPlanet-backend"))
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")));

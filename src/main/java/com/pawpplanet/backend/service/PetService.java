@@ -4,12 +4,10 @@ import com.pawpplanet.backend.dto.PetDto;
 import com.pawpplanet.backend.model.Pet;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for Pet operations.
@@ -29,7 +27,7 @@ public class PetService {
     public List<PetDto> getAllPets() {
         return petRepository.values().stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
