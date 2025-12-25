@@ -124,6 +124,6 @@ PawPlanet-backend/
 └── README.md
 ```
 
-## License 123ccc
+## License 123cc
 
 MIT License
