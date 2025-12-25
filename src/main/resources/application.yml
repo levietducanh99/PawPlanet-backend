@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://c683rl2u9g20vq.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d3cjqofl6u4t2v
+    username: u39o0uu0fuvqjr
+    password: pf3a675e389bcb1425a8d24f5dac7c410143a18a532255b7ddd9f5fde4a0febe0
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: auth,social,pet,encyclopedia,notification
+    default-schema: public
+    baseline-on-migrate: true
+
+logging:
+  level:
+    org.flywaydb: DEBUG
