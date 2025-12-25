@@ -50,3 +50,6 @@ spring-shell.log
 
 # Application
 application-local.properties
+
+# Local environment file (do not commit)
+.env
