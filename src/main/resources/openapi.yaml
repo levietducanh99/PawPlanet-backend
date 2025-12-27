@@ -1,0 +1,1666 @@
+openapi: 3.1.0
+info:
+  title: PawPlanet API
+  description: |-
+    PawPlanet - Nền tảng mạng xã hội cho thú cưng và người yêu động vật.
+    
+    Hệ thống bao gồm:
+    - **Encyclopedia**: Tra cứu kiến thức về loài vật, giống vật nuôi
+    - **Pet Management**: Quản lý hồ sơ thú cưng, tìm người nhận nuôi
+    - **Social Network**: Đăng bài, comment, like, theo dõi
+    - **User Management**: Quản lý tài khoản, hồ sơ người dùng
+
+  version: 1.0.0
+  contact:
+    email: support@pawplanet.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://pawplanet-api.herokuapp.com/api/v1
+    description: Production server
+
+tags:
+  - name: auth
+    description: Xác thực và phân quyền
+  - name: user
+    description: Quản lý người dùng
+  - name: pet
+    description: Quản lý thú cưng
+  - name: encyclopedia
+    description: Bách khoa toàn thư động vật
+  - name: social
+    description: Mạng xã hội (posts, comments, likes)
+  - name: notification
+    description: Thông báo
+
+paths:
+  # ============ AUTH ============
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Đăng ký tài khoản mới
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email hoặc username đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Đăng nhập
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Sai email hoặc mật khẩu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Đăng xuất
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Đăng xuất thành công
+
+  # ============ USER ============
+  /users/profile:
+    get:
+      tags:
+        - user
+      summary: Lấy thông tin profile của user hiện tại
+      operationId: getCurrentUserProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - user
+      summary: Cập nhật profile
+      operationId: updateUserProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /users/{userId}:
+    get:
+      tags:
+        - user
+      summary: Xem profile người dùng khác
+      operationId: getUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          description: Không tìm thấy user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/follow:
+    post:
+      tags:
+        - user
+      summary: Theo dõi người dùng
+      operationId: followUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Đã theo dõi
+        '404':
+          description: Không tìm thấy user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - user
+      summary: Hủy theo dõi người dùng
+      operationId: unfollowUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Đã hủy theo dõi
+
+  /users/{userId}/followers:
+    get:
+      tags:
+        - user
+      summary: Lấy danh sách followers
+      operationId: getFollowers
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+
+  /users/{userId}/following:
+    get:
+      tags:
+        - user
+      summary: Lấy danh sách đang theo dõi
+      operationId: getFollowing
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+
+  # ============ PET ============
+  /pets:
+    get:
+      tags:
+        - pet
+      summary: Lấy danh sách thú cưng
+      operationId: getPets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [owned, for_adoption]
+        - name: speciesId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: breedId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetListResponse'
+
+    post:
+      tags:
+        - pet
+      summary: Tạo hồ sơ thú cưng mới
+      operationId: createPet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePetRequest'
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+  /pets/{petId}:
+    get:
+      tags:
+        - pet
+      summary: Xem chi tiết thú cưng
+      operationId: getPetById
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetDetail'
+        '404':
+          description: Không tìm thấy pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - pet
+      summary: Cập nhật thông tin thú cưng
+      operationId: updatePet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePetRequest'
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+    delete:
+      tags:
+        - pet
+      summary: Xóa hồ sơ thú cưng
+      operationId: deletePet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Xóa thành công
+
+  /pets/{petId}/adoption-profile:
+    get:
+      tags:
+        - pet
+      summary: Xem hồ sơ nhận nuôi
+      operationId: getAdoptionProfile
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdoptionProfile'
+        '404':
+          description: Pet không có hồ sơ nhận nuôi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - pet
+      summary: Tạo hồ sơ nhận nuôi
+      operationId: createAdoptionProfile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdoptionProfileRequest'
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdoptionProfile'
+
+    put:
+      tags:
+        - pet
+      summary: Cập nhật hồ sơ nhận nuôi
+      operationId: updateAdoptionProfile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAdoptionProfileRequest'
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdoptionProfile'
+
+  /pets/{petId}/follow:
+    post:
+      tags:
+        - pet
+      summary: Theo dõi thú cưng
+      operationId: followPet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Đã theo dõi
+
+    delete:
+      tags:
+        - pet
+      summary: Hủy theo dõi thú cưng
+      operationId: unfollowPet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Đã hủy theo dõi
+
+  # ============ ENCYCLOPEDIA ============
+  /encyclopedia/species:
+    get:
+      tags:
+        - encyclopedia
+      summary: Lấy danh sách loài
+      operationId: getSpeciesList
+      parameters:
+        - name: classId
+          in: query
+          description: Lọc theo lớp (class)
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeciesListResponse'
+
+  /encyclopedia/species/{speciesId}:
+    get:
+      tags:
+        - encyclopedia
+      summary: Chi tiết loài
+      operationId: getSpeciesDetail
+      parameters:
+        - name: speciesId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum: [vi, en]
+            default: vi
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeciesDetail'
+
+  /encyclopedia/breeds:
+    get:
+      tags:
+        - encyclopedia
+      summary: Lấy danh sách giống
+      operationId: getBreedsList
+      parameters:
+        - name: speciesId
+          in: query
+          description: Lọc theo loài
+          schema:
+            type: integer
+            format: int64
+        - name: search
+          in: query
+          description: Tìm kiếm theo tên
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BreedListResponse'
+
+  /encyclopedia/breeds/{breedId}:
+    get:
+      tags:
+        - encyclopedia
+      summary: Chi tiết giống
+      operationId: getBreedDetail
+      parameters:
+        - name: breedId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum: [vi, en]
+            default: vi
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BreedDetail'
+
+  /encyclopedia/classes:
+    get:
+      tags:
+        - encyclopedia
+      summary: Lấy danh sách lớp động vật
+      operationId: getClassesList
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnimalClass'
+
+  # ============ SOCIAL ============
+  /posts:
+    get:
+      tags:
+        - social
+      summary: Lấy danh sách bài viết (feed)
+      operationId: getPosts
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [normal, adoption, sale]
+        - name: authorId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: hashtags
+          in: query
+          description: Lọc theo hashtag
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostListResponse'
+
+    post:
+      tags:
+        - social
+      summary: Tạo bài viết mới
+      operationId: createPost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+
+  /posts/{postId}:
+    get:
+      tags:
+        - social
+      summary: Xem chi tiết bài viết
+      operationId: getPostById
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDetail'
+
+    delete:
+      tags:
+        - social
+      summary: Xóa bài viết (soft delete)
+      operationId: deletePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Xóa thành công
+
+  /posts/{postId}/like:
+    post:
+      tags:
+        - social
+      summary: Like bài viết
+      operationId: likePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Đã like
+
+    delete:
+      tags:
+        - social
+      summary: Unlike bài viết
+      operationId: unlikePost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Đã unlike
+
+  /posts/{postId}/comments:
+    get:
+      tags:
+        - social
+      summary: Lấy danh sách comment
+      operationId: getComments
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentListResponse'
+
+    post:
+      tags:
+        - social
+      summary: Tạo comment
+      operationId: createComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+  /comments/{commentId}:
+    delete:
+      tags:
+        - social
+      summary: Xóa comment (soft delete)
+      operationId: deleteComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Xóa thành công
+
+  /comments/{commentId}/replies:
+    get:
+      tags:
+        - social
+      summary: Lấy danh sách reply của comment
+      operationId: getCommentReplies
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+
+  # ============ NOTIFICATION ============
+  /notifications:
+    get:
+      tags:
+        - notification
+      summary: Lấy danh sách thông báo
+      operationId: getNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: isRead
+          in: query
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+
+  /notifications/{notificationId}/read:
+    put:
+      tags:
+        - notification
+      summary: Đánh dấu đã đọc
+      operationId: markNotificationAsRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Thành công
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Số trang (bắt đầu từ 0)
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+
+    SizeParam:
+      name: size
+      in: query
+      description: Số lượng items trên 1 trang
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+
+  schemas:
+    # ============ AUTH SCHEMAS ============
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: johndoe
+        password:
+          type: string
+          minLength: 6
+          format: password
+          example: MySecurePassword123
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT token
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    # ============ USER SCHEMAS ============
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+        isVerified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        petsCount:
+          type: integer
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+
+    UserListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserProfile'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    # ============ PET SCHEMAS ============
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        speciesId:
+          type: integer
+          format: int64
+        speciesName:
+          type: string
+        breedId:
+          type: integer
+          format: int64
+        breedName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [MALE, FEMALE, UNKNOWN]
+        description:
+          type: string
+        status:
+          type: string
+          enum: [owned, for_adoption]
+        ownerId:
+          type: integer
+          format: int64
+        ownerUsername:
+          type: string
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/PetMedia'
+
+    PetDetail:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - type: object
+          properties:
+            adoptionProfile:
+              $ref: '#/components/schemas/AdoptionProfile'
+            followerCount:
+              type: integer
+            isFollowing:
+              type: boolean
+              description: User hiện tại có đang follow pet này không
+
+    CreatePetRequest:
+      type: object
+      required:
+        - name
+        - speciesId
+      properties:
+        name:
+          type: string
+        speciesId:
+          type: integer
+          format: int64
+        breedId:
+          type: integer
+          format: int64
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [MALE, FEMALE, UNKNOWN]
+        description:
+          type: string
+        status:
+          type: string
+          enum: [owned, for_adoption]
+
+    UpdatePetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        breedId:
+          type: integer
+          format: int64
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+
+    AdoptionProfile:
+      type: object
+      properties:
+        petId:
+          type: integer
+          format: int64
+        healthStatus:
+          type: string
+        vaccinated:
+          type: boolean
+        sterilized:
+          type: boolean
+        personality:
+          type: string
+        habits:
+          type: string
+        favoriteActivities:
+          type: string
+        careInstructions:
+          type: string
+        diet:
+          type: string
+        adoptionRequirements:
+          type: string
+        reasonForAdoption:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateAdoptionProfileRequest:
+      type: object
+      properties:
+        healthStatus:
+          type: string
+        vaccinated:
+          type: boolean
+        sterilized:
+          type: boolean
+        personality:
+          type: string
+        habits:
+          type: string
+        favoriteActivities:
+          type: string
+        careInstructions:
+          type: string
+        diet:
+          type: string
+        adoptionRequirements:
+          type: string
+        reasonForAdoption:
+          type: string
+
+    UpdateAdoptionProfileRequest:
+      type: object
+      properties:
+        healthStatus:
+          type: string
+        vaccinated:
+          type: boolean
+        sterilized:
+          type: boolean
+        personality:
+          type: string
+        habits:
+          type: string
+        favoriteActivities:
+          type: string
+        careInstructions:
+          type: string
+        diet:
+          type: string
+        adoptionRequirements:
+          type: string
+        reasonForAdoption:
+          type: string
+
+    PetMedia:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [image, video]
+        role:
+          type: string
+          enum: [avatar, gallery]
+        url:
+          type: string
+        displayOrder:
+          type: integer
+
+    PetListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    # ============ ENCYCLOPEDIA SCHEMAS ============
+    AnimalClass:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+
+    Species:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        classId:
+          type: integer
+          format: int64
+        className:
+          type: string
+        name:
+          type: string
+        scientificName:
+          type: string
+        description:
+          type: string
+
+    SpeciesDetail:
+      allOf:
+        - $ref: '#/components/schemas/Species'
+        - type: object
+          properties:
+            attributes:
+              type: array
+              items:
+                $ref: '#/components/schemas/SpeciesAttribute'
+            sections:
+              type: array
+              items:
+                $ref: '#/components/schemas/SpeciesSection'
+            media:
+              type: array
+              items:
+                $ref: '#/components/schemas/EncyclopediaMedia'
+
+    SpeciesAttribute:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        key:
+          type: string
+          example: weight
+        valueMin:
+          type: number
+        valueMax:
+          type: number
+        unit:
+          type: string
+          example: kg
+        displayOrder:
+          type: integer
+
+    SpeciesSection:
+      type: object
+      properties:
+        sectionCode:
+          type: string
+        sectionName:
+          type: string
+        content:
+          type: string
+
+    Breed:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        speciesId:
+          type: integer
+          format: int64
+        speciesName:
+          type: string
+        name:
+          type: string
+        origin:
+          type: string
+        shortDescription:
+          type: string
+
+    BreedDetail:
+      allOf:
+        - $ref: '#/components/schemas/Breed'
+        - type: object
+          properties:
+            attributes:
+              type: array
+              items:
+                $ref: '#/components/schemas/BreedAttribute'
+            sections:
+              type: array
+              items:
+                $ref: '#/components/schemas/BreedSection'
+            media:
+              type: array
+              items:
+                $ref: '#/components/schemas/EncyclopediaMedia'
+
+    BreedAttribute:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        key:
+          type: string
+          example: temperament
+        value:
+          type: string
+        displayOrder:
+          type: integer
+
+    BreedSection:
+      type: object
+      properties:
+        sectionCode:
+          type: string
+        sectionName:
+          type: string
+        content:
+          type: string
+        displayOrder:
+          type: integer
+
+    EncyclopediaMedia:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [image, video]
+        role:
+          type: string
+          enum: [hero, gallery, thumbnail]
+        url:
+          type: string
+        displayOrder:
+          type: integer
+
+    SpeciesListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Species'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    BreedListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Breed'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    # ============ SOCIAL SCHEMAS ============
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        authorId:
+          type: integer
+          format: int64
+        authorUsername:
+          type: string
+        authorAvatarUrl:
+          type: string
+        content:
+          type: string
+        hashtags:
+          type: string
+        type:
+          type: string
+          enum: [normal, adoption, sale]
+        contactInfo:
+          type: string
+        location:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        likeCount:
+          type: integer
+        commentCount:
+          type: integer
+        isLiked:
+          type: boolean
+          description: User hiện tại đã like hay chưa
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostMedia'
+        pets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+
+    PostDetail:
+      allOf:
+        - $ref: '#/components/schemas/Post'
+        - type: object
+          properties:
+            comments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Comment'
+
+    CreatePostRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+        hashtags:
+          type: string
+        type:
+          type: string
+          enum: [normal, adoption, sale]
+        contactInfo:
+          type: string
+        location:
+          type: string
+        petIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        mediaUrls:
+          type: array
+          items:
+            type: string
+
+    PostMedia:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [image, video]
+        url:
+          type: string
+        displayOrder:
+          type: integer
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        postId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        username:
+          type: string
+        userAvatarUrl:
+          type: string
+        parentId:
+          type: integer
+          format: int64
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        replyCount:
+          type: integer
+
+    CreateCommentRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+        parentId:
+          type: integer
+          format: int64
+          description: ID của comment cha (nếu là reply)
+
+    PostListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    CommentListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    # ============ NOTIFICATION SCHEMAS ============
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [LIKE, COMMENT, FOLLOW, ADOPTION_REQUEST]
+        referenceId:
+          type: integer
+          format: int64
+          description: ID của object liên quan (postId, commentId, userId, petId)
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+          description: Nội dung thông báo đã format
+
+    NotificationListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+        unreadCount:
+          type: integer
+
+    # ============ ERROR SCHEMA ============
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: INVALID_INPUT
+        message:
+          type: string
+          example: Email đã tồn tại trong hệ thống
+        details:
+          type: object
+          additionalProperties: true
+
