@@ -2,13 +2,23 @@ server:
   port: ${PORT:8080}
 
 spring:
+  datasource:
+    hikari:
+      # Default connection pool settings for local development
+      # For production, use application-prod.yml with stricter limits
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 30000
+
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false  # Disable to avoid slowing down transactions
 
   flyway:
-    enabled: true
+    enabled: false  # Disable auto-migration (run manually to avoid connection issues)
     locations: classpath:db/migration
     schemas: auth,social,pet,encyclopedia,notification
     default-schema: public

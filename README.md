@@ -117,6 +117,69 @@ Once the application is running, access the Swagger UI at:
 
 - **`DATABASE_URL`** - PostgreSQL connection URL (Heroku format: `postgres://user:pass@host:port/db`)
 - **`JWT_SECRET`** (optional) - Secret key for JWT authentication
+- **`SPRING_PROFILES_ACTIVE`** (Heroku production) - Set to `prod` for optimized connection pool
+
+### Connection Pool Management
+
+**⚠️ IMPORTANT for Heroku Essential Plan (20 connections max)**
+
+The application uses **HikariCP** with optimized settings:
+
+#### Local Development (`application.yml`)
+```yaml
+hikari:
+  maximum-pool-size: 5      # Safe for local development
+  minimum-idle: 1
+```
+
+#### Production (`application-prod.yml`)
+```yaml
+hikari:
+  maximum-pool-size: 2      # Optimized for Heroku Essential
+  minimum-idle: 0           # No idle connections
+  idle-timeout: 10000       # 10 seconds
+  leak-detection-threshold: 2000  # Detect leaks early
+```
+
+**Set production profile on Heroku:**
+```bash
+heroku config:set SPRING_PROFILES_ACTIVE=prod --app your-app-name
+```
+
+**Monitor connection pool:**
+```bash
+# View HikariCP stats in logs
+heroku logs --tail --app your-app-name | grep -i hikari
+
+# Check database connections
+heroku pg:ps --app your-app-name
+```
+
+➡️ **See [HEROKU-CONNECTION-FIX.md](HEROKU-CONNECTION-FIX.md) for detailed guide**
+
+### Flyway Migrations
+
+**🔧 Manual Migration (Recommended for Production)**
+
+Flyway is **disabled** by default to prevent connection pool issues.
+
+#### Local Development
+```bash
+# Run migrations manually
+./scripts/flyway-migrate.ps1
+# Or: mvn flyway:migrate
+```
+
+#### Heroku Production
+```bash
+# Run migration on Heroku (one-off dyno)
+heroku run ./mvnw flyway:migrate --app your-app-name
+```
+
+**Why manual migration?**
+- Avoids holding connections during app restart
+- Better control over schema changes
+- Safer for Heroku Essential plan (limited connections)
 
 ### Local Development with .env
 

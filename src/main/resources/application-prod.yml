@@ -1,0 +1,36 @@
+# Production configuration for Heroku Essential plan (20 connections max)
+# Activate with: SPRING_PROFILES_ACTIVE=prod
+
+spring:
+  datasource:
+    hikari:
+      # CRITICAL: Limit connections for Heroku Essential (20 connections total)
+      maximum-pool-size: 2
+      minimum-idle: 0
+      idle-timeout: 10000          # 10 seconds
+      max-lifetime: 300000          # 5 minutes
+      connection-timeout: 20000     # 20 seconds
+      leak-detection-threshold: 2000 # 2 seconds - detect connection leaks early
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false  # DISABLE SQL logging in production
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+
+  flyway:
+    # DISABLE Flyway auto-migration in production
+    # Run migrations manually using: heroku run ./mvnw flyway:migrate --app pawplanet
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.pawpplanet: INFO
+    org.flywaydb: WARN
+    org.hibernate: WARN
+    com.zaxxer.hikari: DEBUG  # Monitor connection pool behavior
+
