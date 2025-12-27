@@ -6,25 +6,25 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "species", schema = "encyclopedia")
+@Table(name = "species_section_contents", schema = "encyclopedia")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SpeciesEntity {
+public class SpeciesSectionContentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "class_id")
-    private Long classId;
+    @Column(name = "species_id")
+    private Long speciesId;
 
-    @Column(nullable = false)
-    private String name;
+    @Column(name = "section_id")
+    private Long sectionId;
 
-    @Column(name = "scientific_name")
-    private String scientificName;
+    private String language;
 
     @Column(columnDefinition = "TEXT")
-    private String description;
+    private String content;
 }
+

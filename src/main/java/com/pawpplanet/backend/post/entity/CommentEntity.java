@@ -1,52 +1,44 @@
 package com.pawpplanet.backend.post.entity;
 
-import com.pawpplanet.backend.user.entity.UserEntity;
 import jakarta.persistence.*;
-
-import java.time.Instant;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "comments", schema = "social")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CommentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private PostEntity post;
+    @Column(name = "post_id")
+    private Long postId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    @Column(name = "user_id")
+    private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    private CommentEntity parent;
+    @Column(name = "parent_id")
+    private Long parentId;
 
-    @Column(columnDefinition = "text")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
-    private Instant createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    public CommentEntity() {}
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public PostEntity getPost() { return post; }
-    public void setPost(PostEntity post) { this.post = post; }
-
-    public UserEntity getUser() { return user; }
-    public void setUser(UserEntity user) { this.user = user; }
-
-    public CommentEntity getParent() { return parent; }
-    public void setParent(CommentEntity parent) { this.parent = parent; }
-
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

@@ -1,11 +1,18 @@
 package com.pawpplanet.backend.user.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
-@Embeddable
-public class FollowUserId {
+import java.io.Serializable;
+import java.util.Objects;
 
+@Embeddable
+public class FollowUserId implements Serializable {
+
+    @Column(name = "follower_id")
     private Long followerId;
+
+    @Column(name = "following_id")
     private Long followingId;
 
     public FollowUserId() {}
@@ -20,4 +27,18 @@ public class FollowUserId {
 
     public Long getFollowingId() { return followingId; }
     public void setFollowingId(Long followingId) { this.followingId = followingId; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FollowUserId that = (FollowUserId) o;
+        return Objects.equals(followerId, that.followerId) &&
+               Objects.equals(followingId, that.followingId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(followerId, followingId);
+    }
 }

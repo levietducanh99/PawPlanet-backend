@@ -5,27 +5,24 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Master table for breed sections (nutrition, training, health, etc.)
- * Maps to encyclopedia.breed_sections table
- */
 @Entity
-@Table(name = "breed_sections", schema = "encyclopedia")
+@Table(name = "classes", schema = "encyclopedia")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BreedSectionEntity {
+public class AnimalClassEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String code;
+    @Column(nullable = false)
+    private String name;
 
-    @Column(name = "display_name")
-    private String displayName;
+    @Column(unique = true)
+    private String code;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 }
+

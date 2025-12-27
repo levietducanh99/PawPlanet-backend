@@ -1,8 +1,6 @@
 package com.pawpplanet.backend.user.entity;
 
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.time.Instant;
 
@@ -13,6 +11,7 @@ public class FollowUserEntity {
     @EmbeddedId
     private FollowUserId id;
 
+    @Column(name = "created_at")
     private Instant createdAt;
 
     public FollowUserEntity() {}

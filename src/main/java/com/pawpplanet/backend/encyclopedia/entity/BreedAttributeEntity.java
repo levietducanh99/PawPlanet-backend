@@ -1,4 +1,4 @@
-package com.pawpplanet.backend.post.entity;
+package com.pawpplanet.backend.encyclopedia.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,24 +6,25 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "post_media", schema = "social")
+@Table(name = "breed_attributes", schema = "encyclopedia")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostMediaEntity {
+public class BreedAttributeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "post_id")
-    private Long postId;
+    @Column(name = "breed_id")
+    private Long breedId;
 
-    private String type;  // image | video
+    @Column(name = "key", nullable = false)
+    private String key;
 
-    @Column(columnDefinition = "TEXT")
-    private String url;
+    private String value;
 
     @Column(name = "display_order")
     private Integer displayOrder;
 }
+

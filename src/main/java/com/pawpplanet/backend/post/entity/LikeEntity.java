@@ -1,25 +1,35 @@
 package com.pawpplanet.backend.post.entity;
 
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-
-import java.time.Instant;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "likes", schema = "social")
-public class LikeEntity {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@IdClass(LikeId.class)
+public class    LikeEntity {
 
-    @EmbeddedId
-    private LikeId id;
+    @Id
+    @Column(name = "user_id")
+    private Long userId;
 
-    private Instant createdAt;
+    @Id
+    @Column(name = "post_id")
+    private Long postId;
 
-    public LikeEntity() {}
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    public LikeId getId() { return id; }
-    public void setId(LikeId id) { this.id = id; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }
+

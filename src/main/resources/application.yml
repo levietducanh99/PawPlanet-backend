@@ -13,6 +13,8 @@ spring:
     schemas: auth,social,pet,encyclopedia,notification
     default-schema: public
     baseline-on-migrate: true
+    validate-on-migrate: false
+    out-of-order: false
 
 logging:
   level:

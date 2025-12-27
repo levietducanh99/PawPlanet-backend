@@ -16,7 +16,7 @@ public class BreedSectionContentEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id")
-    private EncyclopediaSectionEntity section;
+    private BreedSectionEntity section;
 
     private String language;
 
@@ -31,8 +31,8 @@ public class BreedSectionContentEntity {
     public BreedEntity getBreed() { return breed; }
     public void setBreed(BreedEntity breed) { this.breed = breed; }
 
-    public EncyclopediaSectionEntity getSection() { return section; }
-    public void setSection(EncyclopediaSectionEntity section) { this.section = section; }
+    public BreedSectionEntity getSection() { return section; }
+    public void setSection(BreedSectionEntity section) { this.section = section; }
 
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }

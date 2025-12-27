@@ -1,11 +1,16 @@
 package com.pawpplanet.backend.pet.entity;
 
-import com.pawpplanet.backend.encyclopedia.entity.BreedEntity;
-import com.pawpplanet.backend.user.entity.UserEntity;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "pets", schema = "pet")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PetEntity {
 
     @Id
@@ -14,45 +19,22 @@ public class PetEntity {
 
     private String name;
 
-    private String species;
+    @Column(name = "species_id")
+    private Long speciesId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "breed_id")
-    private BreedEntity breed;
+    @Column(name = "breed_id")
+    private Long breedId;
 
-    private Integer age;
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     private String gender;
 
-    private String healthStatus;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id")
-    private UserEntity owner;
+    private String status;  // owned | for_adoption
 
-    public PetEntity() {}
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getSpecies() { return species; }
-    public void setSpecies(String species) { this.species = species; }
-
-    public BreedEntity getBreed() { return breed; }
-    public void setBreed(BreedEntity breed) { this.breed = breed; }
-
-    public Integer getAge() { return age; }
-    public void setAge(Integer age) { this.age = age; }
-
-    public String getGender() { return gender; }
-    public void setGender(String gender) { this.gender = gender; }
-
-    public String getHealthStatus() { return healthStatus; }
-    public void setHealthStatus(String healthStatus) { this.healthStatus = healthStatus; }
-
-    public UserEntity getOwner() { return owner; }
-    public void setOwner(UserEntity owner) { this.owner = owner; }
+    @Column(name = "owner_id")
+    private Long ownerId;
 }

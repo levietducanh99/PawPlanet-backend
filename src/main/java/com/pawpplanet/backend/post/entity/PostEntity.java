@@ -1,64 +1,48 @@
 package com.pawpplanet.backend.post.entity;
 
-import com.pawpplanet.backend.user.entity.UserEntity;
 import jakarta.persistence.*;
-
-import java.time.Instant;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "posts", schema = "social")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PostEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id")
-    private UserEntity author;
+    @Column(name = "author_id")
+    private Long authorId;
 
-    @Column(columnDefinition = "text")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
-    @Column(columnDefinition = "text")
-    private String hashtags; // comma-separated list
+    @Column(columnDefinition = "TEXT")
+    private String hashtags;
 
-    private String type;
+    private String type;  // normal | adoption | sale
 
+    @Column(name = "contact_info")
     private String contactInfo;
 
     private String location;
 
-    private Instant createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    private Instant deletedAt;
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
-    public PostEntity() {}
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public UserEntity getAuthor() { return author; }
-    public void setAuthor(UserEntity author) { this.author = author; }
-
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-
-    public String getHashtags() { return hashtags; }
-    public void setHashtags(String hashtags) { this.hashtags = hashtags; }
-
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-
-    public String getContactInfo() { return contactInfo; }
-    public void setContactInfo(String contactInfo) { this.contactInfo = contactInfo; }
-
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }
