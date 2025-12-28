@@ -1,0 +1,70 @@
+package com.pawpplanet.backend.auth.controller;
+
+import com.nimbusds.jose.JOSEException;
+import com.pawpplanet.backend.auth.dto.*;
+import com.pawpplanet.backend.auth.service.AuthService;
+import com.pawpplanet.backend.common.dto.ApiResponse;
+import com.pawpplanet.backend.user.dto.UserResponse;
+import com.pawpplanet.backend.user.entity.UserEntity;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.text.ParseException;
+
+@RestController
+@RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
+@Tag(name = "Authentication", description = "API xác thực người dùng")
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    @Operation(
+            summary = "Đăng ký tài khoản mới",
+            description = "Tạo tài khoản người dùng mới với email, username và password"
+    )
+    public ApiResponse<UserEntity> register(@RequestBody @Valid RegisterRequest request) {
+        ApiResponse<UserEntity> response = new ApiResponse<>();
+        response.setResult(authService.register(request));
+        return response;
+    }
+
+    @PostMapping("/login")
+    @Operation(
+            summary = "Đăng nhập",
+            description = "Đăng nhập và nhận JWT token để xác thực các request tiếp theo"
+    )
+    public ApiResponse<AuthResponse> login(@RequestBody @Valid LoginRequest request) {
+        ApiResponse<AuthResponse> response = new ApiResponse<>();
+        response.setResult(authService.login(request));
+        return response;
+    }
+
+    @PostMapping("/introspect")
+    @Operation(
+            summary = "Xác thực token",
+            description = "Kiểm tra token JWT có hợp lệ và còn hiệu lực không"
+    )
+    public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request) throws ParseException, JOSEException {
+        ApiResponse<IntrospectResponse> response = new ApiResponse<>();
+        response.setResult(authService.introspect(request));
+        return response;
+    }
+
+    @GetMapping("/{userId}")
+    @Operation(
+            summary = "Lấy thông tin user theo ID",
+            description = "Endpoint này yêu cầu JWT authentication",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ApiResponse<UserResponse> getUserById(@PathVariable("userId") Long userId) {
+        ApiResponse<UserResponse> response = new ApiResponse<>();
+        response.setResult(authService.getUserById(userId));
+        return response;
+    }
+}
