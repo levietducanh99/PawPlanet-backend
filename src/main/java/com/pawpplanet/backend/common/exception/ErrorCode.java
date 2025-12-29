@@ -18,7 +18,9 @@ public enum ErrorCode {
     UNAUTHORIZED_ACCESS(403, "Unauthorized access"),
     FOLLOW_RELATIONSHIP_NOT_FOUND(404, "Follow relationship not found"),
     INTERNAL_SERVER_ERROR(500, "Internal server error"),
-    INVALID_CREDENTIALS(401, "Invalid credentials")
+    INVALID_CREDENTIALS(401, "Invalid credentials"),
+
+    SAME_PASSWORD(400, "New password cannot be the same as the old password")
     ;
     private int code;
     private String message;

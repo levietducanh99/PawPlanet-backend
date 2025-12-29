@@ -5,8 +5,11 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.pawpplanet.backend.auth.dto.*;
-import com.pawpplanet.backend.common.dto.ApiResponse;
+import com.pawpplanet.backend.auth.dto.request.*;
+import com.pawpplanet.backend.auth.dto.response.AuthResponse;
+import com.pawpplanet.backend.auth.dto.response.IntrospectResponse;
+import com.pawpplanet.backend.auth.entity.InvalidatedToken;
+import com.pawpplanet.backend.auth.repository.InvalidatedTokenRepository;
 import com.pawpplanet.backend.common.exception.AppException;
 import com.pawpplanet.backend.common.exception.ErrorCode;
 import com.pawpplanet.backend.user.dto.UserResponse;
@@ -14,8 +17,12 @@ import com.pawpplanet.backend.user.entity.Role;
 import com.pawpplanet.backend.user.entity.UserEntity;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +33,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -33,10 +41,14 @@ public class AuthService {
     @Autowired
     private UserRepository userRepository;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+    @Autowired
+    private InvalidatedTokenRepository invalidatedTokenRepository;
+
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
     @Value("${jwt.key}")
     protected String SIGNER_KEY;
+
 
     public UserEntity register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -73,6 +85,56 @@ public class AuthService {
         return authResponse;
     }
 
+    public void logout(LogoutRequest request) throws ParseException, JOSEException {
+        var signedJWT = verifyToken(request.getToken());
+        String jti = signedJWT.getJWTClaimsSet().getJWTID();
+        Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        InvalidatedToken invalidatedToken = new InvalidatedToken();
+        invalidatedToken.setId(jti);
+        invalidatedToken.setExpiredAt(expirationTime);
+        invalidatedTokenRepository.save(invalidatedToken);
+    }
+
+    public void changePassword(ChangePasswordRequest request) throws ParseException, JOSEException {
+        UserResponse currentUser = getCurrentUser();
+        log.info("Changing password for user {}", currentUser.getEmail());
+        UserEntity userEntity = userRepository.findByEmail(currentUser.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if(!passwordEncoder.matches(request.getOldPassword(), userEntity.getPassword())) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        if(request.getOldPassword().equals(request.getNewPassword())) {
+            throw new AppException(ErrorCode.SAME_PASSWORD);
+        }
+        if(request.getNewPassword() == null || request.getNewPassword().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        userEntity.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(userEntity);
+        LogoutRequest logoutRequest = new LogoutRequest();
+        logoutRequest.setToken(request.getToken());
+        logout(logoutRequest);
+    }
+
+    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
+
+        SignedJWT signedJWT = SignedJWT.parse(token);
+
+        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        var verified = signedJWT.verify(verifier);
+
+        if (!(verified && expiryTime.after(new Date())))
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+
+        if (invalidatedTokenRepository
+                .existsById(signedJWT.getJWTClaimsSet().getJWTID()))
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+
+        return signedJWT;
+    }
+
 
 
 
@@ -82,9 +144,10 @@ public class AuthService {
                 .subject(userEntity.getEmail())
                 .issuer("pawplanet")
                 .issueTime(new Date())
+                .jwtID(UUID.randomUUID().toString())
                 .claim("scope", userEntity.getRole())
                 .expirationTime(new Date(
-                        Instant.now().plus(1, ChronoUnit.DAYS).toEpochMilli()
+                        Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()
                 ))
                 .build();
 
@@ -101,24 +164,61 @@ public class AuthService {
     }
 
     public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
-        String token = request.getToken();
-        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
-        SignedJWT signedJWT = SignedJWT.parse(token);
+        var token = request.getToken();
 
-        Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-        boolean isExpired = expirationTime.before(new Date());
-        boolean verified =  signedJWT.verify(verifier);
-
+        try {
+            verifyToken(token);
+        } catch (AppException ex) {
+            IntrospectResponse introspectResponse = new IntrospectResponse();
+            introspectResponse.setValid(false);
+            return introspectResponse;
+        }
         IntrospectResponse introspectResponse = new IntrospectResponse();
-        introspectResponse.setValid(!isExpired && verified);
+        introspectResponse.setValid(true);
 
         return introspectResponse;
     }
 
+    public AuthResponse refreshToken(IntrospectRequest request) throws ParseException, JOSEException {
+        var signedJWT = verifyToken(request.getToken());
+        var jti = signedJWT.getJWTClaimsSet().getJWTID();
+        var expriationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        InvalidatedToken invalidatedToken = new InvalidatedToken();
+        invalidatedToken.setId(jti);
+        invalidatedToken.setExpiredAt(expriationTime);
+        invalidatedTokenRepository.save(invalidatedToken);
+
+        String userEmail = signedJWT.getJWTClaimsSet().getSubject();
+        UserEntity userEntity = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        String gerneratedToken = generateToken(userEntity);
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setToken(gerneratedToken);
+        authResponse.setAuthenticated(true);
+        return authResponse;
+    }
+
+    // Get current logged in user
+    public UserResponse getCurrentUser(){
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        String userEmail = authentication.getName();
+        UserEntity userEntity = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserResponse userResponse = new UserResponse();
+        userResponse.setUsername(userEntity.getUsername());
+        userResponse.setEmail(userEntity.getEmail());
+        userResponse.setBio(userEntity.getBio());
+        userResponse.setAvatarUrl(userEntity.getAvatarUrl());
+        userResponse.setRole(userEntity.getRole());
+        return userResponse;
+    }
+
+
     public UserResponse getUserById(Long userId) {
         UserEntity userEntity = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
+        getCurrentUser();
         UserResponse userResponse = new UserResponse();
         userResponse.setUsername(userEntity.getUsername());
         userResponse.setEmail(userEntity.getEmail());
@@ -128,4 +228,6 @@ public class AuthService {
 
         return userResponse;
     }
+
+
 }

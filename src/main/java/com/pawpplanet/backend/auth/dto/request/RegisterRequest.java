@@ -1,4 +1,4 @@
-package com.pawpplanet.backend.auth.dto;
+package com.pawpplanet.backend.auth.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Email;

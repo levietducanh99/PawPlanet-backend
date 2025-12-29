@@ -1,6 +1,5 @@
-package com.pawpplanet.backend.auth.dto;
+package com.pawpplanet.backend.auth.dto.response;
 
-import com.pawpplanet.backend.user.dto.UserResponse;
 import lombok.Getter;
 import lombok.Setter;
 

@@ -1,4 +1,4 @@
-package com.pawpplanet.backend.auth.dto;
+package com.pawpplanet.backend.auth.dto.request;
 
 
 import lombok.Data;

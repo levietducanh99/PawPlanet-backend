@@ -1,10 +1,10 @@
 package com.pawpplanet.backend.user.dto;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 
 public class UserResponse {
     private String email;
