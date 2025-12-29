@@ -16,6 +16,9 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false  # Disable to avoid slowing down transactions
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
     enabled: false  # Disable auto-migration (run manually to avoid connection issues)
@@ -29,6 +32,21 @@ spring:
 logging:
   level:
     org.flywaydb: DEBUG
+    root: INFO
+    com.pawpplanet: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# SpringDoc OpenAPI / Swagger UI Configuration
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
 
 jwt:
     key: "452f28f64659ccb32eceedc4efb09b139036e5c6d144aafd8752076a5ad69dc0"

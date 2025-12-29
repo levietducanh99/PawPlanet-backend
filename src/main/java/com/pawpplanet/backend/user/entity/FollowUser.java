@@ -25,5 +25,6 @@ public class FollowUser {
     @JoinColumn(name = "following_id")
     private UserEntity following;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

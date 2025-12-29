@@ -18,8 +18,29 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final String[] AUTH_WHITELIST = {
-            "/api/v1/**"
+    // Public endpoints that don't require authentication
+    private final String[] PUBLIC_ENDPOINTS = {
+            // Swagger UI & OpenAPI Documentation
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/api-docs/**",
+            "/openapi.yaml",
+
+            // Static resources (required for Swagger UI)
+            "/webjars/**",
+            "/favicon.ico",
+
+            // Health check & Actuator
+            "/health",
+            "/actuator/**"
+    };
+
+    // Auth endpoints (login, register, etc.)
+    private final String[] AUTH_ENDPOINTS = {
+            "/api/v1/auth/register",
+            "/api/v1/auth/login",
+            "/api/v1/auth/introspect"
     };
 
     @Value("${jwt.key}")
@@ -27,19 +48,44 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable);
+        http.csrf(AbstractHttpConfigurer::disable);
 
+        http.authorizeHttpRequests(request ->
+                request
+                        // CORS preflight - MUST BE FIRST
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-        http.
-                authorizeHttpRequests(request ->
-                request.requestMatchers(HttpMethod.POST,AUTH_WHITELIST).permitAll()
-                                .anyRequest().authenticated());
+                        // Swagger UI & OpenAPI
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/api-docs/**",
+                                "/openapi.yaml",
+                                "/webjars/**",
+                                "/favicon.ico"
+                        ).permitAll()
 
-        http.
-                oauth2ResourceServer(
-                oauth2
-                        -> oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())));
+                        // Health check & Actuator
+                        .requestMatchers("/health", "/api/v1/health", "/actuator/**").permitAll()
+
+                        // Auth endpoints - POST only
+                        .requestMatchers(HttpMethod.POST, AUTH_ENDPOINTS).permitAll()
+
+                        // Public GET endpoints - read-only access
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/posts/**",
+                                "/api/v1/users/**",
+                                "/api/v1/pets/**",
+                                "/api/v1/encyclopedia/**").permitAll()
+
+                        // All other requests require authentication
+                        .anyRequest().authenticated()
+        );
+
+        http.oauth2ResourceServer(oauth2 ->
+                oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder()))
+        );
 
         return http.build();
     }
