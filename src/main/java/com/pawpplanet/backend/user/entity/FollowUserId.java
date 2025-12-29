@@ -1,6 +1,5 @@
 package com.pawpplanet.backend.user.entity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 
 import java.io.Serializable;
@@ -9,10 +8,8 @@ import java.util.Objects;
 @Embeddable
 public class FollowUserId implements Serializable {
 
-    @Column(name = "follower_id")
     private Long followerId;
 
-    @Column(name = "following_id")
     private Long followingId;
 
     public FollowUserId() {}

@@ -9,6 +9,7 @@ info:
     - **Pet Management**: Quản lý hồ sơ thú cưng, tìm người nhận nuôi
     - **Social Network**: Đăng bài, comment, like, theo dõi
     - **User Management**: Quản lý tài khoản, hồ sơ người dùng
+    - **Media Upload**: Upload ảnh/video qua Cloudinary
 
   version: 1.0.0
   contact:
@@ -27,6 +28,8 @@ tags:
     description: Quản lý người dùng
   - name: pet
     description: Quản lý thú cưng
+  - name: media
+    description: Upload và quản lý media (ảnh/video)
   - name: encyclopedia
     description: Bách khoa toàn thư động vật
   - name: social
@@ -150,6 +153,44 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserProfile'
 
+  /users/profile/avatar:
+    put:
+      tags:
+        - user
+      summary: Cập nhật avatar
+      description: |-
+        Cập nhật ảnh đại diện. 
+        Yêu cầu upload ảnh trước qua /media/sign và /media, sau đó gọi API này với mediaId.
+      operationId: updateUserAvatar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - avatarMediaId
+              properties:
+                avatarMediaId:
+                  type: integer
+                  format: int64
+                  description: ID của media đã upload
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          description: Media không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /users/{userId}:
     get:
       tags:
@@ -265,6 +306,95 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserListResponse'
+
+  # ============ MEDIA ============
+  /media/sign:
+    post:
+      tags:
+        - media
+      summary: Xin chữ ký để upload media lên Cloudinary
+      description: |-
+        Trả về thông tin cần thiết để upload trực tiếp lên Cloudinary.
+        Frontend sử dụng signature này để upload ảnh/video.
+      operationId: getUploadSignature
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignMediaRequest'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignMediaResponse'
+        '401':
+          description: Chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /media:
+    post:
+      tags:
+        - media
+      summary: Lưu thông tin media sau khi upload thành công
+      description: |-
+        Sau khi upload thành công lên Cloudinary, gọi API này để lưu vào DB.
+        Trả về mediaId để sử dụng khi tạo post, pet, hoặc update avatar.
+      operationId: saveMedia
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveMediaRequest'
+      responses:
+        '201':
+          description: Lưu thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaResponse'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /media/{mediaId}:
+    delete:
+      tags:
+        - media
+      summary: Xóa media
+      description: Xóa media khỏi DB và Cloudinary (nếu cần)
+      operationId: deleteMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Xóa thành công
+        '404':
+          description: Không tìm thấy media
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # ============ PET ============
   /pets:
@@ -392,6 +522,100 @@ paths:
       responses:
         '204':
           description: Xóa thành công
+
+  /pets/{petId}/avatar:
+    put:
+      tags:
+        - pet
+      summary: Cập nhật avatar cho thú cưng
+      description: |-
+        Upload ảnh avatar mới cho pet.
+        Yêu cầu upload ảnh trước qua /media/sign và /media, sau đó gọi API này.
+      operationId: updatePetAvatar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - avatarMediaId
+              properties:
+                avatarMediaId:
+                  type: integer
+                  format: int64
+                  description: ID của media đã upload
+                  example: 20
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          description: Pet hoặc Media không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /pets/{petId}/media:
+    post:
+      tags:
+        - pet
+      summary: Thêm ảnh/video vào gallery của thú cưng
+      description: |-
+        Thêm nhiều ảnh/video vào gallery.
+        Yêu cầu upload media trước qua /media/sign và /media.
+      operationId: addPetMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaIds
+              properties:
+                mediaIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                  description: Danh sách ID các media cần thêm
+                  example: [21, 22, 23]
+      responses:
+        '200':
+          description: Thêm thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          description: Pet hoặc Media không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /pets/{petId}/adoption-profile:
     get:
@@ -1014,6 +1238,115 @@ components:
         bio:
           type: string
 
+    # ============ MEDIA SCHEMAS ============
+    SignMediaRequest:
+      type: object
+      required:
+        - uploadType
+      properties:
+        uploadType:
+          type: string
+          enum: [avatar, post, pet, encyclopedia]
+          description: Loại upload để xác định folder và rule
+          example: avatar
+        fileType:
+          type: string
+          enum: [image, video]
+          description: Loại file
+          example: image
+
+    SignMediaResponse:
+      type: object
+      properties:
+        signature:
+          type: string
+          description: Chữ ký Cloudinary
+          example: "a1b2c3d4e5f6..."
+        timestamp:
+          type: integer
+          format: int64
+          description: Timestamp cho request
+          example: 1640000000
+        cloudName:
+          type: string
+          description: Cloud name của Cloudinary
+          example: "pawplanet-cloud"
+        apiKey:
+          type: string
+          description: API key public
+          example: "123456789012345"
+        folder:
+          type: string
+          description: Folder trên Cloudinary để upload
+          example: "pawplanet/avatars"
+        uploadPreset:
+          type: string
+          description: Upload preset (nếu có)
+          example: "avatar_preset"
+
+    SaveMediaRequest:
+      type: object
+      required:
+        - publicId
+        - url
+        - type
+      properties:
+        publicId:
+          type: string
+          description: Public ID từ Cloudinary
+          example: "pawplanet/avatars/user_123_1640000000"
+        url:
+          type: string
+          description: URL của media từ Cloudinary
+          example: "https://res.cloudinary.com/pawplanet/image/upload/v1640000000/pawplanet/avatars/user_123.jpg"
+        type:
+          type: string
+          enum: [image, video]
+          description: Loại media
+          example: image
+        width:
+          type: integer
+          description: Chiều rộng (pixels)
+          example: 1920
+        height:
+          type: integer
+          description: Chiều cao (pixels)
+          example: 1080
+        format:
+          type: string
+          description: Định dạng file
+          example: jpg
+        size:
+          type: integer
+          format: int64
+          description: Kích thước file (bytes)
+          example: 524288
+
+    MediaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID của media trong DB
+          example: 42
+        publicId:
+          type: string
+          description: Public ID trên Cloudinary
+          example: "pawplanet/avatars/user_123_1640000000"
+        url:
+          type: string
+          description: URL của media
+          example: "https://res.cloudinary.com/pawplanet/image/upload/v1640000000/pawplanet/avatars/user_123.jpg"
+        type:
+          type: string
+          enum: [image, video]
+          example: image
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-12-29T10:30:00Z"
+
     UserListResponse:
       type: object
       properties:
@@ -1092,23 +1425,42 @@ components:
       properties:
         name:
           type: string
+          example: Lucky
         speciesId:
           type: integer
           format: int64
+          example: 1
         breedId:
           type: integer
           format: int64
+          example: 5
         birthDate:
           type: string
           format: date
+          example: "2022-03-15"
         gender:
           type: string
           enum: [MALE, FEMALE, UNKNOWN]
+          example: MALE
         description:
           type: string
+          example: Chó con rất đáng yêu và năng động
         status:
           type: string
           enum: [owned, for_adoption]
+          example: owned
+        avatarMediaId:
+          type: integer
+          format: int64
+          description: ID của media avatar (đã upload trước)
+          example: 12
+        mediaIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: Danh sách ID các media trong gallery
+          example: [13, 14, 15]
 
     UpdatePetRequest:
       type: object
@@ -1496,24 +1848,34 @@ components:
       properties:
         content:
           type: string
+          example: Tìm chủ mới cho bé cún dễ thương! 🐶
         hashtags:
           type: string
+          example: "#adoption #dog #cute"
         type:
           type: string
           enum: [normal, adoption, sale]
+          example: adoption
         contactInfo:
           type: string
+          example: "0912345678"
         location:
           type: string
+          example: "Quận 1, TP.HCM"
         petIds:
           type: array
           items:
             type: integer
             format: int64
-        mediaUrls:
+          description: Danh sách ID các thú cưng liên quan
+          example: [5, 8]
+        mediaIds:
           type: array
           items:
-            type: string
+            type: integer
+            format: int64
+          description: Danh sách ID các media (ảnh/video) đã upload
+          example: [30, 31, 32]
 
     PostMedia:
       type: object
