@@ -1,4 +1,4 @@
-package com.pawpplanet.backend.pet.config;
+package com.pawpplanet.backend.media.config;
 
 import com.cloudinary.Cloudinary;
 import org.springframework.beans.factory.annotation.Value;

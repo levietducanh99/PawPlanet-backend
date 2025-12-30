@@ -23,4 +23,8 @@ public class UserController {
     public ResponseEntity<UserProfileDTO> updateMyInfo(@RequestBody UpdateProfileRequestDTO dto) {
         return ResponseEntity.ok(userServiceImpl.updateMyInformation(dto));
     }
+    @GetMapping("/{id}")
+    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable Long id) {
+        return ResponseEntity.ok(userServiceImpl.getUserProfileById(id));
+    }
 }

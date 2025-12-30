@@ -1,7 +1,7 @@
-package com.pawpplanet.backend.pet.service.impl;
+package com.pawpplanet.backend.media.service.impl;
 
 import com.cloudinary.Cloudinary;
-import com.pawpplanet.backend.pet.service.PetMediaService;
+import com.pawpplanet.backend.media.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class PetMediaServiceImpl implements PetMediaService {
+public class MediaServiceImpl implements MediaService {
 
     // Spring giờ đã biết cách "Inject" cái này nhờ file Config ở trên
     private final Cloudinary cloudinary;

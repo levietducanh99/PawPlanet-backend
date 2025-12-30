@@ -13,6 +13,8 @@ import com.pawpplanet.backend.pet.repository.PetRepository;
 import com.pawpplanet.backend.pet.service.PetService;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -45,6 +47,21 @@ public class PetServiceImpl implements PetService {
     public PetProfileDTO createPet(CreatePetRequestDTO request) {
 
         validateSpeciesAndBreed(request.getSpeciesId(), request.getBreedId());
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User chưa đăng nhập");
+        }
+
+        String email = authentication.getName();
+
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Không tìm thấy user"
+                ));
         // ... Giữ nguyên phần validate và lưu pet của bạn ...
         PetEntity pet = new PetEntity();
         pet.setName(request.getName());
@@ -54,7 +71,8 @@ public class PetServiceImpl implements PetService {
         pet.setGender(request.getGender());
         pet.setDescription(request.getDescription());
         pet.setStatus(request.getStatus());
-        pet.setOwnerId(1L);
+
+        pet.setOwnerId(user.getId());
 
         petRepository.save(pet);
 
@@ -90,22 +108,57 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public PetProfileDTO updatePet(Long petId, UpdatePetRequestDTO request) {
-        PetEntity pet = petRepository.findById(petId)
-                .orElseThrow(() -> new RuntimeException("Pet not found"));
 
+        // 1️⃣ Tìm pet (KHÔNG dùng RuntimeException)
+        PetEntity pet = petRepository.findById(petId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Pet not found"
+                        )
+                );
+
+        // 2️⃣ Kiểm tra quyền sở hữu
+        String email = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        Long currentUserId = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "User not found"
+                        )
+                )
+                .getId();
+
+        if (!pet.getOwnerId().equals(currentUserId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not allowed to update this pet"
+            );
+        }
+
+        // 3️⃣ Validate species & breed
         validateSpeciesAndBreed(request.getSpeciesId(), request.getBreedId());
 
-        pet.setName(request.getName());
-        pet.setSpeciesId(request.getSpeciesId());
-        pet.setBreedId(request.getBreedId());
-        pet.setBirthDate(request.getBirthDate());
-        pet.setGender(request.getGender());
-        pet.setDescription(request.getDescription());
-        pet.setStatus(request.getStatus());
+        // 4️⃣ Update pet info
+        if (request.getName() != null) pet.setName(request.getName());
+        if (request.getSpeciesId() != null) pet.setSpeciesId(request.getSpeciesId());
+        if (request.getBreedId() != null) pet.setBreedId(request.getBreedId());
+        if (request.getBirthDate() != null) pet.setBirthDate(request.getBirthDate());
+        if (request.getGender() != null) pet.setGender(request.getGender());
+        if (request.getDescription() != null) pet.setDescription(request.getDescription());
+        if (request.getStatus() != null) pet.setStatus(request.getStatus());
+
         petRepository.save(pet);
 
+        // 5️⃣ Update avatar nếu có
         if (request.getUrl() != null && !request.getUrl().isBlank()) {
-            petMediaRepository.findByPetIdAndDisplayOrder(petId, 1)
+
+            petMediaRepository
+                    .findByPetIdAndDisplayOrder(petId, 1)
                     .ifPresent(old -> {
                         old.setDisplayOrder(0);
                         petMediaRepository.save(old);
@@ -117,20 +170,18 @@ public class PetServiceImpl implements PetService {
             newMedia.setRole("avatar");
             newMedia.setUrl(request.getUrl());
             newMedia.setDisplayOrder(1);
+
             petMediaRepository.save(newMedia);
         }
 
-        // GIỮ NGUYÊN PHẦN CŨ CỦA BẠN
+        // 6️⃣ Lấy media đúng cách (KHÔNG dùng findAll)
         List<PetMediaEntity> mediaList =
-                petMediaRepository.findAll()
-                        .stream()
-                        .filter(m -> m.getPetId().equals(petId))
-                        .toList();
+                petMediaRepository.findByPetId(petId);
 
-        // CHỈ THÊM PHẦN NÀY
         PetProfileDTO dto = PetMapper.toProfileDTO(pet, mediaList);
         return enrichPetDTO(dto, pet);
     }
+
 
     // HÀM MỚI THÊM VÀO
     private PetProfileDTO enrichPetDTO(PetProfileDTO dto, PetEntity pet) {

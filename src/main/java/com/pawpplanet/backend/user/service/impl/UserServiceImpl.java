@@ -69,6 +69,19 @@ public class UserServiceImpl implements UserService {
         UserEntity saved = userRepository.save(user);
         return buildUserProfileDTO(saved);
     }
+    @Override
+    public UserProfileDTO getUserProfileById(Long userId) {
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found"
+                        ));
+
+        return buildUserProfileDTO(user);
+    }
+
 
     private UserProfileDTO buildUserProfileDTO(UserEntity user) {
         long followers = followUserRepository.countByIdFollowingId(user.getId());
