@@ -806,6 +806,12 @@ paths:
           description: Tìm kiếm theo tên
           schema:
             type: string
+        - name: taxonomyType
+          in: query
+          description: Lọc theo loại phân loại (breed hoặc subspecies)
+          schema:
+            type: string
+            enum: [breed, subspecies]
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/SizeParam'
       responses:
@@ -1691,6 +1697,11 @@ components:
           type: string
         shortDescription:
           type: string
+        taxonomyType:
+          type: string
+          enum: [breed, subspecies]
+          description: Type of taxonomic classification - breed for cultivated varieties, subspecies for scientific classifications
+          example: breed
 
     BreedDetail:
       allOf:

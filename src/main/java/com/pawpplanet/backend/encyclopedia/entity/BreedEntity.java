@@ -26,4 +26,7 @@ public class BreedEntity {
 
     @Column(name = "short_description", columnDefinition = "TEXT")
     private String shortDescription;
+
+    @Column(name = "taxonomy_type", nullable = false)
+    private String taxonomyType = "breed"; // "breed" or "subspecies"
 }
