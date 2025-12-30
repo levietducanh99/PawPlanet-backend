@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
 
 
 @Getter
@@ -23,5 +24,5 @@ public class PetProfileDTO {
     private String ownerUsername;
 
     // Bổ sung danh sách media
-//    private List<PetMediaDTO> media;
+    private List<PetMediaDTO> media;
 }

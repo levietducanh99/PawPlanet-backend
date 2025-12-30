@@ -6,5 +6,8 @@ import com.pawpplanet.backend.pet.dto.UpdatePetRequestDTO;
 
 public interface PetService {
     PetProfileDTO createPet(CreatePetRequestDTO request);
-    PetProfileDTO updatePet(Long id, UpdatePetRequestDTO dto);
+
+    PetProfileDTO getPetById(Long petId);
+
+     PetProfileDTO updatePet(Long petId, UpdatePetRequestDTO request);
 }

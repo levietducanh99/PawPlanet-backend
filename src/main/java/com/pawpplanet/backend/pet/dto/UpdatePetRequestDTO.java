@@ -21,4 +21,6 @@ public class UpdatePetRequestDTO {
     private String description;
 
     private String status;
+
+    private String url;
 }

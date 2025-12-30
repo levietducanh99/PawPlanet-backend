@@ -1,36 +1,46 @@
 package com.pawpplanet.backend.pet.mapper;
 
-import com.pawpplanet.backend.pet.dto.CreatePetRequestDTO;
+import com.pawpplanet.backend.pet.dto.PetMediaDTO;
 import com.pawpplanet.backend.pet.dto.PetProfileDTO;
 import com.pawpplanet.backend.pet.entity.PetEntity;
+import com.pawpplanet.backend.pet.entity.PetMediaEntity;
+
+import java.util.List;
 
 public class PetMapper {
-    public static PetEntity toEntity(CreatePetRequestDTO req) {
-        PetEntity e = new PetEntity();
-        e.setName(req.getName());
-        e.setSpeciesId(req.getSpeciesId());
-        e.setBreedId(req.getBreedId());
-        e.setBirthDate(req.getBirthDate());
-        e.setGender(req.getGender());
-        e.setDescription(req.getDescription());
-        e.setStatus(req.getStatus());
-        // ownerId left null here; set from authenticated user if available
-        return e;
+
+    public static PetProfileDTO toProfileDTO(
+            PetEntity pet,
+            List<PetMediaEntity> mediaList
+    ) {
+        PetProfileDTO dto = new PetProfileDTO();
+
+        dto.setId(pet.getId());
+        dto.setName(pet.getName());
+        dto.setSpeciesId(pet.getSpeciesId());
+        dto.setBreedId(pet.getBreedId());
+        dto.setBirthDate(pet.getBirthDate());
+        dto.setGender(pet.getGender());
+        dto.setDescription(pet.getDescription());
+        dto.setStatus(pet.getStatus());
+        dto.setOwnerId(pet.getOwnerId());
+
+        dto.setMedia(
+                mediaList.stream()
+                        .map(PetMapper::toMediaDTO)
+                        .toList()
+        );
+
+        return dto;
     }
 
-    public static PetProfileDTO toDto(PetEntity e) {
-        if (e == null) return null;
-        PetProfileDTO dto = new PetProfileDTO();
-        dto.setId(e.getId());
-        dto.setName(e.getName());
-        dto.setSpeciesId(e.getSpeciesId());
-        dto.setBreedId(e.getBreedId());
-        dto.setBirthDate(e.getBirthDate());
-        dto.setGender(e.getGender());
-        dto.setDescription(e.getDescription());
-        dto.setStatus(e.getStatus());
-        dto.setOwnerId(e.getOwnerId());
-        // speciesName, breedName, ownerUsername not populated here
+    public static PetMediaDTO toMediaDTO(PetMediaEntity entity) {
+        PetMediaDTO dto = new PetMediaDTO();
+        dto.setId(entity.getId());
+        dto.setType(entity.getType());
+        dto.setRole(entity.getRole());
+        dto.setUrl(entity.getUrl());
+        dto.setDisplayOrder(entity.getDisplayOrder());
         return dto;
     }
 }
