@@ -1,5 +1,6 @@
 package com.pawpplanet.backend.pet.mapper;
 
+import com.pawpplanet.backend.pet.dto.CreatePetRequestDTO;
 import com.pawpplanet.backend.pet.dto.PetMediaDTO;
 import com.pawpplanet.backend.pet.dto.PetProfileDTO;
 import com.pawpplanet.backend.pet.entity.PetEntity;
@@ -9,32 +10,67 @@ import java.util.List;
 
 public class PetMapper {
 
+    /* ================= CREATE ================= */
+
+    public static PetEntity toEntity(CreatePetRequestDTO req) {
+        if (req == null) return null;
+
+        PetEntity e = new PetEntity();
+        e.setName(req.getName());
+        e.setSpeciesId(req.getSpeciesId());
+        e.setBreedId(req.getBreedId());
+        e.setBirthDate(req.getBirthDate());
+        e.setGender(req.getGender());
+        e.setDescription(req.getDescription());
+        e.setStatus(req.getStatus());
+        // ownerId set elsewhere (from authenticated user)
+        return e;
+    }
+
+    /* ================= BASIC DTO ================= */
+
+    public static PetProfileDTO toDto(PetEntity e) {
+        if (e == null) return null;
+
+        PetProfileDTO dto = new PetProfileDTO();
+        dto.setId(e.getId());
+        dto.setName(e.getName());
+        dto.setSpeciesId(e.getSpeciesId());
+        dto.setBreedId(e.getBreedId());
+        dto.setBirthDate(e.getBirthDate());
+        dto.setGender(e.getGender());
+        dto.setDescription(e.getDescription());
+        dto.setStatus(e.getStatus());
+        dto.setOwnerId(e.getOwnerId());
+        return dto;
+    }
+
+    /* ================= PROFILE DTO ================= */
+
     public static PetProfileDTO toProfileDTO(
             PetEntity pet,
             List<PetMediaEntity> mediaList
     ) {
-        PetProfileDTO dto = new PetProfileDTO();
+        if (pet == null) return null;
 
-        dto.setId(pet.getId());
-        dto.setName(pet.getName());
-        dto.setSpeciesId(pet.getSpeciesId());
-        dto.setBreedId(pet.getBreedId());
-        dto.setBirthDate(pet.getBirthDate());
-        dto.setGender(pet.getGender());
-        dto.setDescription(pet.getDescription());
-        dto.setStatus(pet.getStatus());
-        dto.setOwnerId(pet.getOwnerId());
+        PetProfileDTO dto = toDto(pet);
 
-        dto.setMedia(
-                mediaList.stream()
-                        .map(PetMapper::toMediaDTO)
-                        .toList()
-        );
+        if (mediaList != null) {
+            dto.setMedia(
+                    mediaList.stream()
+                            .map(PetMapper::toMediaDTO)
+                            .toList()
+            );
+        }
 
         return dto;
     }
 
+    /* ================= MEDIA ================= */
+
     public static PetMediaDTO toMediaDTO(PetMediaEntity entity) {
+        if (entity == null) return null;
+
         PetMediaDTO dto = new PetMediaDTO();
         dto.setId(entity.getId());
         dto.setType(entity.getType());
