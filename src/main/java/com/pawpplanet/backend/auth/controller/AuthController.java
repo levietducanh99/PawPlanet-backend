@@ -11,6 +11,7 @@ import com.pawpplanet.backend.user.entity.UserEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class AuthController {
             summary = "Đăng ký tài khoản mới",
             description = "Tạo tài khoản người dùng mới với email, username và password"
     )
-    public ApiResponse<UserEntity> register(@RequestBody @Valid RegisterRequest request) {
+    public ApiResponse<UserEntity> register(@RequestBody @Valid RegisterRequest request) throws MessagingException {
 
         ApiResponse<UserEntity> response = new ApiResponse<>();
                 response.setResult(authService.register(request));
@@ -100,6 +101,30 @@ public class AuthController {
         response.setResult(
                 authService.refreshToken(refreshTokenRequest)
         );
+        return response;
+    }
+
+    @GetMapping("/verify-email")
+    public ApiResponse<?> verifyEmail(@RequestParam("token") String token) throws ParseException {
+        ApiResponse<Void> response = new ApiResponse<>();
+        authService.verifyEmail(token);
+        response.setMessage("Email verified successfully");
+        return response;
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<?> resetPassword(@RequestParam("token") String token, @RequestBody ResetPasswordRequest request) throws ParseException, JOSEException {
+        ApiResponse<Void> response = new ApiResponse<>();
+        authService.resetPassword(token, request);
+        response.setMessage("Password reset successfully");
+        return response;
+    }
+
+    @PostMapping("/forgot-password")
+    public ApiResponse<?> forgotPassword(@RequestBody ForgotPasswordRequest request) throws MessagingException {
+        ApiResponse<Void> response = new ApiResponse<>();
+        authService.forgotPassword(request);
+        response.setMessage("Password reset email sent successfully");
         return response;
     }
 }
