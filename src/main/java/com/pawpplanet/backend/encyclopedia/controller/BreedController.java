@@ -35,10 +35,14 @@ public class BreedController {
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Lấy tất cả breeds theo species (không phân trang)")
-    public ResponseEntity<ApiResponse<List<BreedResponse>>> listAllBySpecies(@RequestParam("speciesId") Long speciesId) {
-        ApiResponse<List<BreedResponse>> resp = new ApiResponse<>();
-        resp.setResult(service.getBySpeciesId(speciesId));
+    @Operation(summary = "Lấy danh sách breeds theo species (có phân trang). Tham số: speciesId, page, size")
+    public ResponseEntity<ApiResponse<PagedResult<BreedResponse>>> listAllBySpecies(
+            @RequestParam("speciesId") Long speciesId,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size
+    ) {
+        ApiResponse<PagedResult<BreedResponse>> resp = new ApiResponse<>();
+        resp.setResult(service.getBreeds(page, size, speciesId, null));
         resp.setStatusCode(0);
         return ResponseEntity.ok(resp);
     }
@@ -52,4 +56,3 @@ public class BreedController {
         return ResponseEntity.ok(resp);
     }
 }
-
