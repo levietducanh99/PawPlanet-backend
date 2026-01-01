@@ -65,8 +65,11 @@ public class SecurityConfig {
                         // Health check & Actuator
                         .requestMatchers("/health", "/api/v1/health", "/actuator/**").permitAll()
 
-                        // Auth endpoints - POST only
+                        // Auth endpoints - login, register, etc.
                         .requestMatchers(HttpMethod.POST, AUTH_ENDPOINTS).permitAll()
+                        .requestMatchers(HttpMethod.GET, AUTH_ENDPOINTS).permitAll()
+
+
 
                         // Public GET endpoints - read-only access
                         .requestMatchers(HttpMethod.GET,

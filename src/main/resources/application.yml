@@ -15,10 +15,10 @@ spring:
       connection-timeout: 30000
 
   mail:
-    host: mail.hust.edu.vn
+    host: smtp.gmail.com
     port: 587
-    username: anh.lvd226075@sis.hust.edu.vn
-    password: ducanh230904
+    username: taihoan6106@gmail.com
+    password: ${MAIL_SERVICE}
     properties:
       mail:
         smtp:

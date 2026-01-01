@@ -277,7 +277,9 @@ public class AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         userEntity.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(userEntity);
-        logout(request.getLogoutRequest());
+        LogoutRequest requestLogout = new LogoutRequest();
+        requestLogout.setToken(token);
+        logout(requestLogout);
     }
 
     public void forgotPassword(ForgotPasswordRequest request) throws MessagingException {
