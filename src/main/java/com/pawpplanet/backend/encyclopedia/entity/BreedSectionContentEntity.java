@@ -23,6 +23,9 @@ public class BreedSectionContentEntity {
     @Column(columnDefinition = "text")
     private String content;
 
+    @Column(name = "display_order")
+    private Integer displayOrder;
+
     public BreedSectionContentEntity() {}
 
     public Long getId() { return id; }
@@ -39,4 +42,7 @@ public class BreedSectionContentEntity {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public Integer getDisplayOrder() { return displayOrder; }
+    public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
 }
