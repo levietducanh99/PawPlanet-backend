@@ -9,6 +9,7 @@ import com.pawpplanet.backend.user.repository.FollowUserRepository;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import com.pawpplanet.backend.user.service.UserService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,7 +34,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileDTO viewProfile() {
-        String email = "user1@example.com"; // TODO: lấy từ JWT
+//        String email = "user1@example.com"; // TODO: lấy từ JWT
+        String email = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
 
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
@@ -44,7 +49,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileDTO updateMyInformation(UpdateProfileRequestDTO request) {
-        String email = "user1@example.com"; // TODO: JWT
+//        String email = "user1@example.com"; // TODO: JWT
+        String email = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
 
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
@@ -60,6 +69,19 @@ public class UserServiceImpl implements UserService {
         UserEntity saved = userRepository.save(user);
         return buildUserProfileDTO(saved);
     }
+    @Override
+    public UserProfileDTO getUserProfileById(Long userId) {
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found"
+                        ));
+
+        return buildUserProfileDTO(user);
+    }
+
 
     private UserProfileDTO buildUserProfileDTO(UserEntity user) {
         long followers = followUserRepository.countByIdFollowingId(user.getId());

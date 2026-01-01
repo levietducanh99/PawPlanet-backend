@@ -2,6 +2,8 @@ server:
   port: ${PORT:8080}
 
 spring:
+  config:
+    import: "optional:configserver:http://localhost:8888"
   datasource:
     hikari:
       # Default connection pool settings for local development
@@ -21,12 +23,12 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
-    enabled: false  # Disable auto-migration (run manually to avoid connection issues)
+    enabled: true  # Enable auto-migration - will automatically run V3 and future migrations
     locations: classpath:db/migration
     schemas: auth,social,pet,encyclopedia,notification
     default-schema: public
     baseline-on-migrate: true
-    validate-on-migrate: false
+    validate-on-migrate: true  # Validate migrations before applying
     out-of-order: false
 
 logging:
@@ -47,6 +49,10 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
+cloudinary:
+  cloud_name: ${CLOUDINARY_CLOUD_NAME}
+  api_key: ${CLOUDINARY_API_KEY}
+  api_secret: ${CLOUDINARY_API_SECRET}
 
 jwt:
     key: "452f28f64659ccb32eceedc4efb09b139036e5c6d144aafd8752076a5ad69dc0"

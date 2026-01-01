@@ -806,6 +806,12 @@ paths:
           description: Tìm kiếm theo tên
           schema:
             type: string
+        - name: taxonomyType
+          in: query
+          description: Lọc theo loại phân loại (breed hoặc subspecies)
+          schema:
+            type: string
+            enum: [breed, subspecies]
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/SizeParam'
       responses:
@@ -1449,18 +1455,22 @@ components:
           type: string
           enum: [owned, for_adoption]
           example: owned
-        avatarMediaId:
-          type: integer
-          format: int64
-          description: ID của media avatar (đã upload trước)
-          example: 12
-        mediaIds:
-          type: array
-          items:
-            type: integer
-            format: int64
-          description: Danh sách ID các media trong gallery
-          example: [13, 14, 15]
+        url:
+            type: string
+            description: URL của avatar (nếu có)
+            example: "https://res.cloudinary.com/pawplanet/image/upload/v1640000000/pawplanet/avatars/user_123.jpg"
+#        avatarMediaId:
+#          type: integer
+#          format: int64
+#          description: ID của media avatar (đã upload trước)
+#          example: 12
+#        mediaIds:
+#          type: array
+#          items:
+#            type: integer
+#            format: int64
+#          description: Danh sách ID các media trong gallery
+#          example: [13, 14, 15]
 
     UpdatePetRequest:
       type: object
@@ -1691,6 +1701,11 @@ components:
           type: string
         shortDescription:
           type: string
+        taxonomyType:
+          type: string
+          enum: [breed, subspecies]
+          description: Type of taxonomic classification - breed for cultivated varieties, subspecies for scientific classifications
+          example: breed
 
     BreedDetail:
       allOf:

@@ -12,6 +12,7 @@ spring:
       connection-timeout: 20000     # 20 seconds
       leak-detection-threshold: 2000 # 2 seconds - detect connection leaks early
 
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -33,4 +34,6 @@ logging:
     org.flywaydb: WARN
     org.hibernate: WARN
     com.zaxxer.hikari: DEBUG  # Monitor connection pool behavior
+
+
 
