@@ -1869,13 +1869,69 @@ components:
             format: int64
           description: Danh sách ID các thú cưng liên quan
           example: [5, 8]
-        mediaIds:
+        mediaUrls:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaUrlRequest'
+          description: Danh sách URL ảnh/video đã upload
+          example:
+            - url: "https://res.cloudinary.com/xxx/image/upload/v123/pet1.jpg"
+              type: "image"
+            - url: "https://res.cloudinary.com/xxx/video/upload/v123/pet1.mp4"
+              type: "video"
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          example: Tìm chủ mới cho bé cún dễ thương! 🐶
+        hashtags:
+          type: string
+          example: "#adoption #dog #cute"
+        type:
+          type: string
+          enum: [normal, adoption, sale]
+          example: adoption
+        contactInfo:
+          type: string
+          example: "0912345678"
+        location:
+          type: string
+          example: "Quận 1, TP.HCM"
+        petIds:
           type: array
           items:
             type: integer
             format: int64
-          description: Danh sách ID các media (ảnh/video) đã upload
-          example: [30, 31, 32]
+          description: Danh sách ID các thú cưng liên quan
+          example: [5, 8]
+        mediaUrls:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaUrlRequest'
+          description: Danh sách URL ảnh/video đã upload
+          example:
+            - url: "https://res.cloudinary.com/xxx/image/upload/v123/pet1.jpg"
+              type: "image"
+            - url: "https://res.cloudinary.com/xxx/video/upload/v123/pet1.mp4"
+              type: "video"
+
+    MediaUrlRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: URL của ảnh/video đã upload lên Cloudinary
+          example: "https://res.cloudinary.com/xxx/image/upload/v123/pet1.jpg"
+        type:
+          type: string
+          enum: [image, video]
+          default: image
+          description: Loại media
+          example: "image"
 
     PostMedia:
       type: object

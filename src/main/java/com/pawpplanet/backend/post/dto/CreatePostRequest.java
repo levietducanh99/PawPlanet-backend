@@ -21,5 +21,5 @@ public class CreatePostRequest {
 
     private List<Long> petIds;
 
-    private List<Long> mediaIds;
+    private List<MediaUrlRequest> mediaUrls;
 }

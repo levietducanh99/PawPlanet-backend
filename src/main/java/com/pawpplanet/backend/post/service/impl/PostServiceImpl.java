@@ -1,6 +1,7 @@
 package com.pawpplanet.backend.post.service.impl;
 
 import com.pawpplanet.backend.post.dto.CreatePostRequest;
+import com.pawpplanet.backend.post.dto.MediaUrlRequest;
 import com.pawpplanet.backend.post.dto.PostResponse;
 import com.pawpplanet.backend.post.dto.UpdatePostRequest;
 import com.pawpplanet.backend.post.entity.PostEntity;
@@ -8,8 +9,6 @@ import com.pawpplanet.backend.post.entity.PostMediaEntity;
 import com.pawpplanet.backend.post.entity.PostPetEntity;
 import com.pawpplanet.backend.post.mapper.PostMapper;
 import com.pawpplanet.backend.post.repository.*;
-import com.pawpplanet.backend.pet.entity.PetMediaEntity;
-import com.pawpplanet.backend.pet.repository.PetMediaRepository;
 import com.pawpplanet.backend.post.service.PostService;
 import com.pawpplanet.backend.user.entity.UserEntity;
 import com.pawpplanet.backend.user.repository.UserRepository;
@@ -29,7 +28,6 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostMediaRepository postMediaRepository;
-    private final PetMediaRepository petMediaRepository;
     private final PostPetRepository postPetRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
@@ -38,7 +36,6 @@ public class PostServiceImpl implements PostService {
             PostRepository postRepository,
             UserRepository userRepository,
             PostMediaRepository postMediaRepository,
-            PetMediaRepository petMediaRepository,
             PostPetRepository postPetRepository,
             LikeRepository likeRepository,
             CommentRepository commentRepository
@@ -46,7 +43,6 @@ public class PostServiceImpl implements PostService {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.postMediaRepository = postMediaRepository;
-        this.petMediaRepository = petMediaRepository;
         this.postPetRepository = postPetRepository;
         this.likeRepository = likeRepository;
         this.commentRepository = commentRepository;
@@ -68,7 +64,7 @@ public class PostServiceImpl implements PostService {
 
         PostEntity savedPost = postRepository.save(post);
 
-        savePostMedia(savedPost.getId(), request.getMediaIds());
+        savePostMedia(savedPost.getId(), request.getMediaUrls());
         savePostPets(savedPost.getId(), request.getPetIds());
 
         return buildPostResponse(savedPost, user);
@@ -97,7 +93,7 @@ public class PostServiceImpl implements PostService {
         postMediaRepository.deleteByPostId(postId);
         postPetRepository.deleteByPostId(postId);
 
-        savePostMedia(postId, request.getMediaIds());
+        savePostMedia(postId, request.getMediaUrls());
         savePostPets(postId, request.getPetIds());
 
         return buildPostResponse(postRepository.save(post), user);
@@ -178,21 +174,18 @@ public class PostServiceImpl implements PostService {
 
 
     // ================= HELPER =================
-    private void savePostMedia(Long postId, List<Long> mediaIds) {
-        if (mediaIds == null || mediaIds.isEmpty()) return;
-
-        List<PetMediaEntity> petMediaList =
-                petMediaRepository.findAllById(mediaIds);
+    private void savePostMedia(Long postId, List<MediaUrlRequest> mediaUrls) {
+        if (mediaUrls == null || mediaUrls.isEmpty()) return;
 
         List<PostMediaEntity> postMediaList = new ArrayList<>();
 
-        for (int i = 0; i < petMediaList.size(); i++) {
-            PetMediaEntity petMedia = petMediaList.get(i);
+        for (int i = 0; i < mediaUrls.size(); i++) {
+            MediaUrlRequest mediaRequest = mediaUrls.get(i);
 
             PostMediaEntity postMedia = new PostMediaEntity();
             postMedia.setPostId(postId);
-            postMedia.setType(petMedia.getType());
-            postMedia.setUrl(petMedia.getUrl());
+            postMedia.setType(mediaRequest.getType() != null ? mediaRequest.getType() : "image");
+            postMedia.setUrl(mediaRequest.getUrl());
             postMedia.setDisplayOrder(i);
 
             postMediaList.add(postMedia);

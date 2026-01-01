@@ -20,5 +20,5 @@ public class UpdatePostRequest {
 
     private List<Long> petIds;
 
-    private List<Long> mediaIds;
+    private List<MediaUrlRequest> mediaUrls;
 }
