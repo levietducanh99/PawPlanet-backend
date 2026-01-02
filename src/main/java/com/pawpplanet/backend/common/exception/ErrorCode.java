@@ -3,7 +3,6 @@ package com.pawpplanet.backend.common.exception;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
 @AllArgsConstructor
@@ -20,7 +19,16 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(500, "Internal server error"),
     INVALID_CREDENTIALS(401, "Invalid credentials"),
 
-    SAME_PASSWORD(400, "New password cannot be the same as the old password")
+    SAME_PASSWORD(400, "New password cannot be the same as the old password"),
+
+    // Media upload errors
+    INVALID_UPLOAD_CONTEXT(400, "Invalid upload context"),
+    MISSING_OWNER_ID(400, "Owner ID is required for this upload context"),
+    MISSING_SLUG(400, "Slug is required for this upload context"),
+    INVALID_SLUG_FORMAT(400, "Slug must be lowercase kebab-case (e.g., 'golden-retriever')"),
+    MEDIA_SIGNATURE_GENERATION_FAILED(500, "Failed to generate upload signature"),
+    PET_NOT_FOUND(404, "Pet not found"),
+    UNAUTHORIZED_PET_ACCESS(403, "You do not have permission to upload media for this pet")
     ;
     private int code;
     private String message;
