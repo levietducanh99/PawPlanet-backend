@@ -3,7 +3,9 @@ package com.pawpplanet.backend.encyclopedia.controller;
 import com.pawpplanet.backend.common.dto.ApiResponse;
 import com.pawpplanet.backend.common.dto.PagedResult;
 import com.pawpplanet.backend.encyclopedia.dto.BreedResponse;
+import com.pawpplanet.backend.encyclopedia.dto.BreedAttributeResponse;
 import com.pawpplanet.backend.encyclopedia.service.BreedService;
+import com.pawpplanet.backend.encyclopedia.service.BreedAttributeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 public class BreedController {
 
     private final BreedService service;
+    private final BreedAttributeService attributeService;
 
     @GetMapping
     @Operation(summary = "Lấy danh sách breeds có phân trang, optional filter: speciesId, taxonomyType")
@@ -35,14 +38,10 @@ public class BreedController {
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Lấy danh sách breeds theo species (có phân trang). Tham số: speciesId, page, size")
-    public ResponseEntity<ApiResponse<PagedResult<BreedResponse>>> listAllBySpecies(
-            @RequestParam("speciesId") Long speciesId,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size
-    ) {
-        ApiResponse<PagedResult<BreedResponse>> resp = new ApiResponse<>();
-        resp.setResult(service.getBreeds(page, size, speciesId, null));
+    @Operation(summary = "Lấy tất cả breeds theo species (không phân trang)")
+    public ResponseEntity<ApiResponse<List<BreedResponse>>> listAllBySpecies(@RequestParam("speciesId") Long speciesId) {
+        ApiResponse<List<BreedResponse>> resp = new ApiResponse<>();
+        resp.setResult(service.getBySpeciesId(speciesId));
         resp.setStatusCode(0);
         return ResponseEntity.ok(resp);
     }
@@ -52,6 +51,15 @@ public class BreedController {
     public ResponseEntity<ApiResponse<BreedResponse>> getById(@PathVariable Long id) {
         ApiResponse<BreedResponse> resp = new ApiResponse<>();
         service.getById(id).ifPresent(resp::setResult);
+        resp.setStatusCode(0);
+        return ResponseEntity.ok(resp);
+    }
+
+    @GetMapping("/{breedId}/attributes")
+    @Operation(summary = "Lấy tất cả attribute của breed (không phân trang)")
+    public ResponseEntity<ApiResponse<List<BreedAttributeResponse>>> getAttributesByBreed(@PathVariable Long breedId) {
+        ApiResponse<List<BreedAttributeResponse>> resp = new ApiResponse<>();
+        resp.setResult(attributeService.getAllAttributes(breedId));
         resp.setStatusCode(0);
         return ResponseEntity.ok(resp);
     }
