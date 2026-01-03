@@ -3,10 +3,28 @@ name: Backend CI
 on:
   pull_request:
     branches: [ "main", "dev" ]
+  push:
+    branches: [ "main", "dev" ]
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
+    # PostgreSQL service for tests
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: pawplanet_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@v4
@@ -18,4 +36,26 @@ jobs:
           distribution: 'temurin'
 
       - name: Build & Test
+        env:
+          # Spring profile
+          SPRING_PROFILES_ACTIVE: test
+
+          # Database connection for tests
+          DATABASE_URL: postgresql://test:test@localhost:5432/pawplanet_test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/pawplanet_test
+          SPRING_DATASOURCE_USERNAME: test
+          SPRING_DATASOURCE_PASSWORD: test
+
+          # JWT secret for tests
+          JWT_SECRET: test-secret-key-for-ci-cd-testing-minimum-256-bits-required
+
+          # Cloudinary config for tests (using dummy values)
+          CLOUDINARY_URL: cloudinary://123456789012345:abcdefghijklmnopqrstuvwxyz@test-cloud
+          CLOUDINARY_CLOUD_NAME: test-cloud
+          CLOUDINARY_API_KEY: 123456789012345
+          CLOUDINARY_API_SECRET: abcdefghijklmnopqrstuvwxyz
+
+          # Disable Spring Cloud Config for tests
+          SPRING_CLOUD_CONFIG_ENABLED: false
+
         run: mvn clean test

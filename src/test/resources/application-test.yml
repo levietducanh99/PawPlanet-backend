@@ -1,0 +1,56 @@
+# Test profile configuration
+# Used for unit tests and CI/CD
+
+spring:
+  # Override config import to disable Spring Cloud Config completely
+  config:
+    import: "optional:file:.env[.properties]"
+
+  # Disable Spring Cloud Config for tests
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+
+  # In-memory database for tests (if needed)
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pawplanet_test}
+    username: ${SPRING_DATASOURCE_USERNAME:test}
+    password: ${SPRING_DATASOURCE_PASSWORD:test}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+# JWT configuration
+jwt:
+  secret: ${JWT_SECRET:test-secret-key-for-testing-minimum-256-bits-required}
+  expiration: 3600000
+
+# Cloudinary configuration (using dummy values for tests)
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:test-cloud}
+  api-key: ${CLOUDINARY_API_KEY:123456789012345}
+  api-secret: ${CLOUDINARY_API_SECRET:abcdefghijklmnopqrstuvwxyz}
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.pawpplanet.backend: DEBUG
+    org.springframework.security: WARN
+    org.hibernate: WARN
+
