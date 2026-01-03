@@ -35,27 +35,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Wait for PostgreSQL
-        run: |
-          until pg_isready -h localhost -p 5432 -U test; do
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
-        env:
-          PGPASSWORD: test
-
-      - name: Run Migrations
-        env:
-          SPRING_PROFILES_ACTIVE: test
-          DATABASE_URL: postgresql://test:test@localhost:5432/pawplanet_test
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/pawplanet_test
-          SPRING_DATASOURCE_USERNAME: test
-          SPRING_DATASOURCE_PASSWORD: test
-          JWT_SECRET: test-secret-key-for-ci-cd-testing-minimum-256-bits-required
-          CLOUDINARY_CLOUD_NAME: test-cloud
-          CLOUDINARY_API_KEY: 123456789012345
-          CLOUDINARY_API_SECRET: abcdefghijklmnopqrstuvwxyz
-        run: mvn flyway:migrate
 
       - name: Build & Test
         env:
