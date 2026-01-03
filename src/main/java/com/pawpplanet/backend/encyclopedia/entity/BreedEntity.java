@@ -24,6 +24,9 @@ public class BreedEntity {
 
     private String origin;
 
+    @Column(nullable = false, unique = true)
+    private String slug;
+
     @Column(name = "short_description", columnDefinition = "TEXT")
     private String shortDescription;
 

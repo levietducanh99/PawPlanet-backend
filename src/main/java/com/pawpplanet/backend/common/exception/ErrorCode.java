@@ -26,6 +26,7 @@ public enum ErrorCode {
     MISSING_OWNER_ID(400, "Owner ID is required for this upload context"),
     MISSING_SLUG(400, "Slug is required for this upload context"),
     INVALID_SLUG_FORMAT(400, "Slug must be lowercase kebab-case (e.g., 'golden-retriever')"),
+    SLUG_NOT_FOUND(404, "The specified slug does not exist in the database"),
     MEDIA_SIGNATURE_GENERATION_FAILED(500, "Failed to generate upload signature"),
     PET_NOT_FOUND(404, "Pet not found"),
     UNAUTHORIZED_PET_ACCESS(403, "You do not have permission to upload media for this pet")

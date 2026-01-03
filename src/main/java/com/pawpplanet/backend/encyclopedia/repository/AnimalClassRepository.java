@@ -12,5 +12,9 @@ public interface AnimalClassRepository extends JpaRepository<AnimalClassEntity, 
     Optional<AnimalClassEntity> findByCode(String code);
 
     boolean existsByCode(String code);
+
+    Optional<AnimalClassEntity> findBySlug(String slug);
+
+    boolean existsBySlug(String slug);
 }
 

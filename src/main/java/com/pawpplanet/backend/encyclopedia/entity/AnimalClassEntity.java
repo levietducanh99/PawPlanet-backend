@@ -22,6 +22,9 @@ public class AnimalClassEntity {
     @Column(unique = true)
     private String code;
 
+    @Column(nullable = false, unique = true)
+    private String slug;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 }

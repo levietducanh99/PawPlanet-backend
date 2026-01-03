@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BreedRepository extends JpaRepository<BreedEntity, Long> {
@@ -24,4 +25,9 @@ public interface BreedRepository extends JpaRepository<BreedEntity, Long> {
     Page<BreedEntity> findBySpeciesId(Long speciesId, Pageable pageable);
     Page<BreedEntity> findByTaxonomyType(String taxonomyType, Pageable pageable);
     Page<BreedEntity> findBySpeciesIdAndTaxonomyType(Long speciesId, String taxonomyType, Pageable pageable);
+
+    // Slug methods
+    Optional<BreedEntity> findBySlug(String slug);
+
+    boolean existsBySlug(String slug);
 }

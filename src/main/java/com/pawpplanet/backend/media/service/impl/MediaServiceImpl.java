@@ -3,6 +3,10 @@ package com.pawpplanet.backend.media.service.impl;
 import com.cloudinary.Cloudinary;
 import com.pawpplanet.backend.common.exception.AppException;
 import com.pawpplanet.backend.common.exception.ErrorCode;
+import com.pawpplanet.backend.common.util.SlugUtils;
+import com.pawpplanet.backend.encyclopedia.repository.AnimalClassRepository;
+import com.pawpplanet.backend.encyclopedia.repository.BreedRepository;
+import com.pawpplanet.backend.encyclopedia.repository.SpeciesRepository;
 import com.pawpplanet.backend.media.dto.MediaSignRequest;
 import com.pawpplanet.backend.media.dto.MediaSignResponse;
 import com.pawpplanet.backend.media.dto.UploadContext;
@@ -27,6 +31,9 @@ public class MediaServiceImpl implements MediaService {
     private final Cloudinary cloudinary;
     private final PetRepository petRepository;
     private final UserRepository userRepository;
+    private final AnimalClassRepository animalClassRepository;
+    private final SpeciesRepository speciesRepository;
+    private final BreedRepository breedRepository;
 
     /**
      * Legacy method - kept for backward compatibility
@@ -61,6 +68,11 @@ public class MediaServiceImpl implements MediaService {
         // Authorize pet ownership for PET contexts
         if (isPetContext(request.getContext())) {
             verifyPetOwnership(request.getOwnerId());
+        }
+
+        // Validate encyclopedia slug exists for ENCYCLOPEDIA contexts
+        if (requiresSlug(request.getContext())) {
+            verifySlugExists(request.getContext(), request.getSlug());
         }
 
         // Determine folder and public ID based on context
@@ -125,18 +137,14 @@ public class MediaServiceImpl implements MediaService {
             if (request.getSlug() == null || request.getSlug().trim().isEmpty()) {
                 throw new AppException(ErrorCode.MISSING_SLUG);
             }
-            // Normalize slug: lowercase, replace spaces with hyphens, remove invalid characters
-            String slug = request.getSlug()
-                    .trim()
-                    .toLowerCase()
-                    .replaceAll("\\s+", "-")  // Replace whitespace with hyphens
-                    .replaceAll("[^a-z0-9-]", "")  // Remove invalid characters
-                    .replaceAll("-+", "-")  // Replace multiple hyphens with single hyphen
-                    .replaceAll("^-|-$", "");  // Remove leading/trailing hyphens
 
-            if (slug.isEmpty() || !slug.matches("^[a-z0-9]+(-[a-z0-9]+)*$")) {
+            // Normalize slug using SlugUtils
+            String slug = SlugUtils.normalizeSlug(request.getSlug());
+
+            if (slug.isEmpty() || !SlugUtils.isValidSlug(slug)) {
                 throw new AppException(ErrorCode.INVALID_SLUG_FORMAT);
             }
+
             // Update the slug to normalized version
             request.setSlug(slug);
         }
@@ -273,5 +281,50 @@ public class MediaServiceImpl implements MediaService {
         }
 
         log.debug("Verified user {} owns pet {}", currentUser.getId(), petId);
+    }
+
+    /**
+     * Verify that the slug exists in the database for the given encyclopedia context
+     *
+     * @param context The upload context (ENCYCLOPEDIA_CLASS, ENCYCLOPEDIA_SPECIES, or ENCYCLOPEDIA_BREED)
+     * @param slug The slug to verify
+     * @throws AppException if slug not found
+     */
+    private void verifySlugExists(UploadContext context, String slug) {
+        boolean exists = false;
+
+        switch (context) {
+            case ENCYCLOPEDIA_CLASS:
+                exists = animalClassRepository.existsBySlug(slug);
+                if (!exists) {
+                    log.warn("Class slug '{}' not found in database", slug);
+                }
+                break;
+
+            case ENCYCLOPEDIA_SPECIES:
+                exists = speciesRepository.existsBySlug(slug);
+                if (!exists) {
+                    log.warn("Species slug '{}' not found in database", slug);
+                }
+                break;
+
+            case ENCYCLOPEDIA_BREED:
+                exists = breedRepository.existsBySlug(slug);
+                if (!exists) {
+                    log.warn("Breed slug '{}' not found in database", slug);
+                }
+                break;
+
+            default:
+                // This should never happen since requiresSlug() already validates context
+                log.error("Invalid context for slug verification: {}", context);
+                throw new AppException(ErrorCode.INVALID_UPLOAD_CONTEXT);
+        }
+
+        if (!exists) {
+            throw new AppException(ErrorCode.SLUG_NOT_FOUND);
+        }
+
+        log.debug("Verified slug '{}' exists for context {}", slug, context);
     }
 }
