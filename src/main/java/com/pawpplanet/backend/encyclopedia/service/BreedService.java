@@ -82,6 +82,7 @@ public class BreedService {
         r.setId(e.getId());
         r.setSpeciesId(e.getSpeciesId());
         r.setName(e.getName());
+        r.setSlug(e.getSlug());
         r.setOrigin(e.getOrigin());
         r.setShortDescription(e.getShortDescription());
         r.setTaxonomyType(e.getTaxonomyType());

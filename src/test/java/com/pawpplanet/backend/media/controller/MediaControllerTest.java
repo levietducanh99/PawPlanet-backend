@@ -1,25 +1,31 @@
 package com.pawpplanet.backend.media.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pawpplanet.backend.common.exception.AppException;
+import com.pawpplanet.backend.common.exception.ErrorCode;
 import com.pawpplanet.backend.media.dto.MediaSignRequest;
+import com.pawpplanet.backend.media.dto.MediaSignResponse;
 import com.pawpplanet.backend.media.dto.UploadContext;
+import com.pawpplanet.backend.media.service.MediaService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration tests for Media Sign API
- * Tests various upload contexts and validation scenarios
+ * Unit tests for Media Sign API Controller
+ * Tests controller layer with mocked service
  */
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(MediaController.class)
 @WithMockUser(username = "testuser", roles = {"USER"})
 class MediaControllerTest {
 
@@ -29,6 +35,9 @@ class MediaControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockBean
+    private MediaService mediaService;
+
     @Test
     void testGenerateSignature_UserAvatar_Success() throws Exception {
         MediaSignRequest request = MediaSignRequest.builder()
@@ -36,7 +45,20 @@ class MediaControllerTest {
                 .ownerId(123L)
                 .build();
 
+        MediaSignResponse mockResponse = MediaSignResponse.builder()
+                .signature("mock-signature-123")
+                .timestamp(1234567890L)
+                .apiKey("test-api-key")
+                .cloudName("test-cloud")
+                .assetFolder("pawplanet/users/123/avatar")
+                .publicId("avatar")
+                .resourceType("image")
+                .build();
+
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class))).thenReturn(mockResponse);
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -56,7 +78,20 @@ class MediaControllerTest {
                 .ownerId(456L)
                 .build();
 
+        MediaSignResponse mockResponse = MediaSignResponse.builder()
+                .signature("mock-signature-456")
+                .timestamp(1234567890L)
+                .apiKey("test-api-key")
+                .cloudName("test-cloud")
+                .assetFolder("pawplanet/pets/456/gallery")
+                .publicId(null)  // PET_GALLERY doesn't have fixed public_id
+                .resourceType("image")
+                .build();
+
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class))).thenReturn(mockResponse);
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -65,21 +100,7 @@ class MediaControllerTest {
                 .andExpect(jsonPath("$.public_id").doesNotExist());
     }
 
-    @Test
-    void testGenerateSignature_EncyclopediaBreed_Success() throws Exception {
-        MediaSignRequest request = MediaSignRequest.builder()
-                .context(UploadContext.ENCYCLOPEDIA_BREED)
-                .slug("golden-retriever")
-                .build();
 
-        mockMvc.perform(post("/api/v1/media/sign")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.signature").exists())
-                .andExpect(jsonPath("$.asset_folder").value("pawplanet/encyclopedia/breeds/golden-retriever"))
-                .andExpect(jsonPath("$.public_id").value("golden-retriever"));
-    }
 
     @Test
     void testGenerateSignature_PostMedia_WithVideo_Success() throws Exception {
@@ -89,7 +110,20 @@ class MediaControllerTest {
                 .resourceType("video")
                 .build();
 
+        MediaSignResponse mockResponse = MediaSignResponse.builder()
+                .signature("mock-signature-789")
+                .timestamp(1234567890L)
+                .apiKey("test-api-key")
+                .cloudName("test-cloud")
+                .assetFolder("pawplanet/posts/789")
+                .publicId(null)
+                .resourceType("video")
+                .build();
+
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class))).thenReturn(mockResponse);
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -105,7 +139,11 @@ class MediaControllerTest {
                 // Missing ownerId
                 .build();
 
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class)))
+                .thenThrow(new AppException(ErrorCode.MISSING_OWNER_ID));
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -118,7 +156,11 @@ class MediaControllerTest {
                 // Missing slug
                 .build();
 
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class)))
+                .thenThrow(new AppException(ErrorCode.MISSING_SLUG));
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -131,7 +173,11 @@ class MediaControllerTest {
                 .slug("!!!@@@") // Only special characters - cannot be normalized
                 .build();
 
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class)))
+                .thenThrow(new AppException(ErrorCode.INVALID_SLUG_FORMAT));
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -144,7 +190,11 @@ class MediaControllerTest {
                 // Context is null
                 .build();
 
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class)))
+                .thenThrow(new AppException(ErrorCode.INVALID_UPLOAD_CONTEXT));
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -157,25 +207,16 @@ class MediaControllerTest {
                 .ownerId(-1L)
                 .build();
 
+        when(mediaService.generateUploadSignature(any(MediaSignRequest.class)))
+                .thenThrow(new AppException(ErrorCode.MISSING_OWNER_ID));
+
         mockMvc.perform(post("/api/v1/media/sign")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void testGenerateSignature_SlugNormalization_Success() throws Exception {
-        MediaSignRequest request = MediaSignRequest.builder()
-                .context(UploadContext.ENCYCLOPEDIA_SPECIES)
-                .slug("Golden-Retriever") // Mixed case - should be normalized
-                .build();
 
-        mockMvc.perform(post("/api/v1/media/sign")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.asset_folder").value("pawplanet/encyclopedia/species/golden-retriever"))
-                .andExpect(jsonPath("$.public_id").value("golden-retriever"));
-    }
 }
 

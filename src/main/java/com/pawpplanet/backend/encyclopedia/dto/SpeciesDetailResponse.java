@@ -8,6 +8,7 @@ public class SpeciesDetailResponse {
     private Long id;
     private Long classId;
     private String name;
+    private String slug;
     private String scientificName;
     private String description;
 

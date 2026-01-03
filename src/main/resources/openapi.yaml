@@ -1,2099 +1,2954 @@
-openapi: 3.1.0
-info:
-  title: PawPlanet API
-  description: |-
-    PawPlanet - Nền tảng mạng xã hội cho thú cưng và người yêu động vật.
-    
-    Hệ thống bao gồm:
-    - **Encyclopedia**: Tra cứu kiến thức về loài vật, giống vật nuôi
-    - **Pet Management**: Quản lý hồ sơ thú cưng, tìm người nhận nuôi
-    - **Social Network**: Đăng bài, comment, like, theo dõi
-    - **User Management**: Quản lý tài khoản, hồ sơ người dùng
-    - **Media Upload**: Upload ảnh/video qua Cloudinary
-
-  version: 1.0.0
-  contact:
-    email: support@pawplanet.com
-
-servers:
-  - url: http://localhost:8080/api/v1
-    description: Local development server
-  - url: https://pawplanet-api.herokuapp.com/api/v1
-    description: Production server
-
-tags:
-  - name: auth
-    description: Xác thực và phân quyền
-  - name: user
-    description: Quản lý người dùng
-  - name: pet
-    description: Quản lý thú cưng
-  - name: media
-    description: Upload và quản lý media (ảnh/video)
-  - name: encyclopedia
-    description: Bách khoa toàn thư động vật
-  - name: social
-    description: Mạng xã hội (posts, comments, likes)
-  - name: notification
-    description: Thông báo
-
-paths:
-  # ============ AUTH ============
-  /auth/register:
-    post:
-      tags:
-        - auth
-      summary: Đăng ký tài khoản mới
-      operationId: register
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterRequest'
-      responses:
-        '201':
-          description: Đăng ký thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          description: Dữ liệu không hợp lệ
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Email hoặc username đã tồn tại
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /auth/login:
-    post:
-      tags:
-        - auth
-      summary: Đăng nhập
-      operationId: login
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-      responses:
-        '200':
-          description: Đăng nhập thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '401':
-          description: Sai email hoặc mật khẩu
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /auth/logout:
-    post:
-      tags:
-        - auth
-      summary: Đăng xuất
-      operationId: logout
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Đăng xuất thành công
-
-  # ============ USER ============
-  /users/profile:
-    get:
-      tags:
-        - user
-      summary: Lấy thông tin profile của user hiện tại
-      operationId: getCurrentUserProfile
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfile'
-        '401':
-          description: Chưa đăng nhập
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    put:
-      tags:
-        - user
-      summary: Cập nhật profile
-      operationId: updateUserProfile
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateProfileRequest'
-      responses:
-        '200':
-          description: Cập nhật thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfile'
-
-  /users/profile/avatar:
-    put:
-      tags:
-        - user
-      summary: Cập nhật avatar
-      description: |-
-        Cập nhật ảnh đại diện. 
-        Yêu cầu upload ảnh trước qua /media/sign và /media, sau đó gọi API này với mediaId.
-      operationId: updateUserAvatar
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - avatarMediaId
-              properties:
-                avatarMediaId:
-                  type: integer
-                  format: int64
-                  description: ID của media đã upload
-      responses:
-        '200':
-          description: Cập nhật thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfile'
-        '404':
-          description: Media không tồn tại
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /users/{userId}:
-    get:
-      tags:
-        - user
-      summary: Xem profile người dùng khác
-      operationId: getUserById
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfile'
-        '404':
-          description: Không tìm thấy user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /users/{userId}/follow:
-    post:
-      tags:
-        - user
-      summary: Theo dõi người dùng
-      operationId: followUser
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Đã theo dõi
-        '404':
-          description: Không tìm thấy user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    delete:
-      tags:
-        - user
-      summary: Hủy theo dõi người dùng
-      operationId: unfollowUser
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Đã hủy theo dõi
-
-  /users/{userId}/followers:
-    get:
-      tags:
-        - user
-      summary: Lấy danh sách followers
-      operationId: getFollowers
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserListResponse'
-
-  /users/{userId}/following:
-    get:
-      tags:
-        - user
-      summary: Lấy danh sách đang theo dõi
-      operationId: getFollowing
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserListResponse'
-
-  # ============ MEDIA ============
-  /media/sign:
-    post:
-      tags:
-        - media
-      summary: Xin chữ ký để upload media lên Cloudinary
-      description: |-
-        Trả về thông tin cần thiết để upload trực tiếp lên Cloudinary.
-        Frontend sử dụng signature này để upload ảnh/video.
-      operationId: getUploadSignature
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SignMediaRequest'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SignMediaResponse'
-        '401':
-          description: Chưa đăng nhập
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /media:
-    post:
-      tags:
-        - media
-      summary: Lưu thông tin media sau khi upload thành công
-      description: |-
-        Sau khi upload thành công lên Cloudinary, gọi API này để lưu vào DB.
-        Trả về mediaId để sử dụng khi tạo post, pet, hoặc update avatar.
-      operationId: saveMedia
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SaveMediaRequest'
-      responses:
-        '201':
-          description: Lưu thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MediaResponse'
-        '400':
-          description: Dữ liệu không hợp lệ
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /media/{mediaId}:
-    delete:
-      tags:
-        - media
-      summary: Xóa media
-      description: Xóa media khỏi DB và Cloudinary (nếu cần)
-      operationId: deleteMedia
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Xóa thành công
-        '404':
-          description: Không tìm thấy media
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  # ============ PET ============
-  /pets:
-    get:
-      tags:
-        - pet
-      summary: Lấy danh sách thú cưng
-      operationId: getPets
-      parameters:
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [owned, for_adoption]
-        - name: speciesId
-          in: query
-          schema:
-            type: integer
-            format: int64
-        - name: breedId
-          in: query
-          schema:
-            type: integer
-            format: int64
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PetListResponse'
-
-    post:
-      tags:
-        - pet
-      summary: Tạo hồ sơ thú cưng mới
-      operationId: createPet
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePetRequest'
-      responses:
-        '201':
-          description: Tạo thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
-
-  /pets/{petId}:
-    get:
-      tags:
-        - pet
-      summary: Xem chi tiết thú cưng
-      operationId: getPetById
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PetDetail'
-        '404':
-          description: Không tìm thấy pet
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    put:
-      tags:
-        - pet
-      summary: Cập nhật thông tin thú cưng
-      operationId: updatePet
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdatePetRequest'
-      responses:
-        '200':
-          description: Cập nhật thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
-
-    delete:
-      tags:
-        - pet
-      summary: Xóa hồ sơ thú cưng
-      operationId: deletePet
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Xóa thành công
-
-  /pets/{petId}/avatar:
-    put:
-      tags:
-        - pet
-      summary: Cập nhật avatar cho thú cưng
-      description: |-
-        Upload ảnh avatar mới cho pet.
-        Yêu cầu upload ảnh trước qua /media/sign và /media, sau đó gọi API này.
-      operationId: updatePetAvatar
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - avatarMediaId
-              properties:
-                avatarMediaId:
-                  type: integer
-                  format: int64
-                  description: ID của media đã upload
-                  example: 20
-      responses:
-        '200':
-          description: Cập nhật thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
-        '404':
-          description: Pet hoặc Media không tồn tại
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /pets/{petId}/media:
-    post:
-      tags:
-        - pet
-      summary: Thêm ảnh/video vào gallery của thú cưng
-      description: |-
-        Thêm nhiều ảnh/video vào gallery.
-        Yêu cầu upload media trước qua /media/sign và /media.
-      operationId: addPetMedia
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - mediaIds
-              properties:
-                mediaIds:
-                  type: array
-                  items:
-                    type: integer
-                    format: int64
-                  description: Danh sách ID các media cần thêm
-                  example: [21, 22, 23]
-      responses:
-        '200':
-          description: Thêm thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
-        '404':
-          description: Pet hoặc Media không tồn tại
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /pets/{petId}/adoption-profile:
-    get:
-      tags:
-        - pet
-      summary: Xem hồ sơ nhận nuôi
-      operationId: getAdoptionProfile
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdoptionProfile'
-        '404':
-          description: Pet không có hồ sơ nhận nuôi
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    post:
-      tags:
-        - pet
-      summary: Tạo hồ sơ nhận nuôi
-      operationId: createAdoptionProfile
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateAdoptionProfileRequest'
-      responses:
-        '201':
-          description: Tạo thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdoptionProfile'
-
-    put:
-      tags:
-        - pet
-      summary: Cập nhật hồ sơ nhận nuôi
-      operationId: updateAdoptionProfile
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateAdoptionProfileRequest'
-      responses:
-        '200':
-          description: Cập nhật thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdoptionProfile'
-
-  /pets/{petId}/follow:
-    post:
-      tags:
-        - pet
-      summary: Theo dõi thú cưng
-      operationId: followPet
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Đã theo dõi
-
-    delete:
-      tags:
-        - pet
-      summary: Hủy theo dõi thú cưng
-      operationId: unfollowPet
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Đã hủy theo dõi
-
-  # ============ ENCYCLOPEDIA ============
-  /encyclopedia/species:
-    get:
-      tags:
-        - encyclopedia
-      summary: Lấy danh sách loài
-      operationId: getSpeciesList
-      parameters:
-        - name: classId
-          in: query
-          description: Lọc theo lớp (class)
-          schema:
-            type: integer
-            format: int64
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SpeciesListResponse'
-
-  /encyclopedia/species/{speciesId}:
-    get:
-      tags:
-        - encyclopedia
-      summary: Chi tiết loài
-      operationId: getSpeciesDetail
-      parameters:
-        - name: speciesId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: language
-          in: query
-          schema:
-            type: string
-            enum: [vi, en]
-            default: vi
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SpeciesDetail'
-
-  /encyclopedia/breeds:
-    get:
-      tags:
-        - encyclopedia
-      summary: Lấy danh sách giống
-      operationId: getBreedsList
-      parameters:
-        - name: speciesId
-          in: query
-          description: Lọc theo loài
-          schema:
-            type: integer
-            format: int64
-        - name: search
-          in: query
-          description: Tìm kiếm theo tên
-          schema:
-            type: string
-        - name: taxonomyType
-          in: query
-          description: Lọc theo loại phân loại (breed hoặc subspecies)
-          schema:
-            type: string
-            enum: [breed, subspecies]
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BreedListResponse'
-
-  /encyclopedia/breeds/{breedId}:
-    get:
-      tags:
-        - encyclopedia
-      summary: Chi tiết giống
-      operationId: getBreedDetail
-      parameters:
-        - name: breedId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: language
-          in: query
-          schema:
-            type: string
-            enum: [vi, en]
-            default: vi
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BreedDetail'
-
-  /encyclopedia/classes:
-    get:
-      tags:
-        - encyclopedia
-      summary: Lấy danh sách lớp động vật
-      operationId: getClassesList
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AnimalClass'
-
-  # ============ SOCIAL ============
-  /posts:
-    get:
-      tags:
-        - social
-      summary: Lấy danh sách bài viết (feed)
-      operationId: getPosts
-      parameters:
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [normal, adoption, sale]
-        - name: authorId
-          in: query
-          schema:
-            type: integer
-            format: int64
-        - name: hashtags
-          in: query
-          description: Lọc theo hashtag
-          schema:
-            type: string
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostListResponse'
-
-    post:
-      tags:
-        - social
-      summary: Tạo bài viết mới
-      operationId: createPost
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePostRequest'
-      responses:
-        '201':
-          description: Tạo thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Post'
-
-  /posts/{postId}:
-    get:
-      tags:
-        - social
-      summary: Xem chi tiết bài viết
-      operationId: getPostById
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostDetail'
-
-    delete:
-      tags:
-        - social
-      summary: Xóa bài viết (soft delete)
-      operationId: deletePost
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Xóa thành công
-
-  /posts/{postId}/like:
-    post:
-      tags:
-        - social
-      summary: Like bài viết
-      operationId: likePost
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Đã like
-
-    delete:
-      tags:
-        - social
-      summary: Unlike bài viết
-      operationId: unlikePost
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Đã unlike
-
-  /posts/{postId}/comments:
-    get:
-      tags:
-        - social
-      summary: Lấy danh sách comment
-      operationId: getComments
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommentListResponse'
-
-    post:
-      tags:
-        - social
-      summary: Tạo comment
-      operationId: createComment
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCommentRequest'
-      responses:
-        '201':
-          description: Tạo thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Comment'
-
-  /comments/{commentId}:
-    delete:
-      tags:
-        - social
-      summary: Xóa comment (soft delete)
-      operationId: deleteComment
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Xóa thành công
-
-  /comments/{commentId}/replies:
-    get:
-      tags:
-        - social
-      summary: Lấy danh sách reply của comment
-      operationId: getCommentReplies
-      parameters:
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Comment'
-
-  # ============ NOTIFICATION ============
-  /notifications:
-    get:
-      tags:
-        - notification
-      summary: Lấy danh sách thông báo
-      operationId: getNotifications
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: isRead
-          in: query
-          schema:
-            type: boolean
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/SizeParam'
-      responses:
-        '200':
-          description: Thành công
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotificationListResponse'
-
-  /notifications/{notificationId}/read:
-    put:
-      tags:
-        - notification
-      summary: Đánh dấu đã đọc
-      operationId: markNotificationAsRead
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: notificationId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Thành công
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-  parameters:
-    PageParam:
-      name: page
-      in: query
-      description: Số trang (bắt đầu từ 0)
-      schema:
-        type: integer
-        default: 0
-        minimum: 0
-
-    SizeParam:
-      name: size
-      in: query
-      description: Số lượng items trên 1 trang
-      schema:
-        type: integer
-        default: 20
-        minimum: 1
-        maximum: 100
-
-  schemas:
-    # ============ AUTH SCHEMAS ============
-    RegisterRequest:
-      type: object
-      required:
-        - email
-        - username
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          example: user@example.com
-        username:
-          type: string
-          minLength: 3
-          maxLength: 50
-          example: johndoe
-        password:
-          type: string
-          minLength: 6
-          format: password
-          example: MySecurePassword123
-
-    LoginRequest:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          format: password
-
-    AuthResponse:
-      type: object
-      properties:
-        token:
-          type: string
-          description: JWT token
-        user:
-          $ref: '#/components/schemas/UserProfile'
-
-    # ============ USER SCHEMAS ============
-    UserProfile:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        email:
-          type: string
-        username:
-          type: string
-        role:
-          type: string
-          enum: [USER, ADMIN]
-        avatarUrl:
-          type: string
-        bio:
-          type: string
-        isVerified:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-        followersCount:
-          type: integer
-        followingCount:
-          type: integer
-        petsCount:
-          type: integer
-
-    UpdateProfileRequest:
-      type: object
-      properties:
-        username:
-          type: string
-        avatarUrl:
-          type: string
-        bio:
-          type: string
-
-    # ============ MEDIA SCHEMAS ============
-    SignMediaRequest:
-      type: object
-      required:
-        - uploadType
-      properties:
-        uploadType:
-          type: string
-          enum: [avatar, post, pet, encyclopedia]
-          description: Loại upload để xác định folder và rule
-          example: avatar
-        fileType:
-          type: string
-          enum: [image, video]
-          description: Loại file
-          example: image
-
-    SignMediaResponse:
-      type: object
-      properties:
-        signature:
-          type: string
-          description: Chữ ký Cloudinary
-          example: "a1b2c3d4e5f6..."
-        timestamp:
-          type: integer
-          format: int64
-          description: Timestamp cho request
-          example: 1640000000
-        cloudName:
-          type: string
-          description: Cloud name của Cloudinary
-          example: "pawplanet-cloud"
-        apiKey:
-          type: string
-          description: API key public
-          example: "123456789012345"
-        folder:
-          type: string
-          description: Folder trên Cloudinary để upload
-          example: "pawplanet/avatars"
-        uploadPreset:
-          type: string
-          description: Upload preset (nếu có)
-          example: "avatar_preset"
-
-    SaveMediaRequest:
-      type: object
-      required:
-        - publicId
-        - url
-        - type
-      properties:
-        publicId:
-          type: string
-          description: Public ID từ Cloudinary
-          example: "pawplanet/avatars/user_123_1640000000"
-        url:
-          type: string
-          description: URL của media từ Cloudinary
-          example: "https://res.cloudinary.com/pawplanet/image/upload/v1640000000/pawplanet/avatars/user_123.jpg"
-        type:
-          type: string
-          enum: [image, video]
-          description: Loại media
-          example: image
-        width:
-          type: integer
-          description: Chiều rộng (pixels)
-          example: 1920
-        height:
-          type: integer
-          description: Chiều cao (pixels)
-          example: 1080
-        format:
-          type: string
-          description: Định dạng file
-          example: jpg
-        size:
-          type: integer
-          format: int64
-          description: Kích thước file (bytes)
-          example: 524288
-
-    MediaResponse:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: ID của media trong DB
-          example: 42
-        publicId:
-          type: string
-          description: Public ID trên Cloudinary
-          example: "pawplanet/avatars/user_123_1640000000"
-        url:
-          type: string
-          description: URL của media
-          example: "https://res.cloudinary.com/pawplanet/image/upload/v1640000000/pawplanet/avatars/user_123.jpg"
-        type:
-          type: string
-          enum: [image, video]
-          example: image
-        createdAt:
-          type: string
-          format: date-time
-          example: "2024-12-29T10:30:00Z"
-
-    UserListResponse:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/UserProfile'
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        size:
-          type: integer
-        number:
-          type: integer
-
-    # ============ PET SCHEMAS ============
-    Pet:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        speciesId:
-          type: integer
-          format: int64
-        speciesName:
-          type: string
-        breedId:
-          type: integer
-          format: int64
-        breedName:
-          type: string
-        birthDate:
-          type: string
-          format: date
-        gender:
-          type: string
-          enum: [MALE, FEMALE, UNKNOWN]
-        description:
-          type: string
-        status:
-          type: string
-          enum: [owned, for_adoption]
-        ownerId:
-          type: integer
-          format: int64
-        ownerUsername:
-          type: string
-        media:
-          type: array
-          items:
-            $ref: '#/components/schemas/PetMedia'
-
-    PetDetail:
-      allOf:
-        - $ref: '#/components/schemas/Pet'
-        - type: object
-          properties:
-            adoptionProfile:
-              $ref: '#/components/schemas/AdoptionProfile'
-            followerCount:
-              type: integer
-            isFollowing:
-              type: boolean
-              description: User hiện tại có đang follow pet này không
-
-    CreatePetRequest:
-      type: object
-      required:
-        - name
-        - speciesId
-      properties:
-        name:
-          type: string
-          example: Lucky
-        speciesId:
-          type: integer
-          format: int64
-          example: 1
-        breedId:
-          type: integer
-          format: int64
-          example: 5
-        birthDate:
-          type: string
-          format: date
-          example: "2022-03-15"
-        gender:
-          type: string
-          enum: [MALE, FEMALE, UNKNOWN]
-          example: MALE
-        description:
-          type: string
-          example: Chó con rất đáng yêu và năng động
-        status:
-          type: string
-          enum: [owned, for_adoption]
-          example: owned
-        url:
-            type: string
-            description: URL của avatar (nếu có)
-            example: "https://res.cloudinary.com/pawplanet/image/upload/v1640000000/pawplanet/avatars/user_123.jpg"
-#        avatarMediaId:
-#          type: integer
-#          format: int64
-#          description: ID của media avatar (đã upload trước)
-#          example: 12
-#        mediaIds:
-#          type: array
-#          items:
-#            type: integer
-#            format: int64
-#          description: Danh sách ID các media trong gallery
-#          example: [13, 14, 15]
-
-    UpdatePetRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        breedId:
-          type: integer
-          format: int64
-        birthDate:
-          type: string
-          format: date
-        gender:
-          type: string
-        description:
-          type: string
-        status:
-          type: string
-
-    AdoptionProfile:
-      type: object
-      properties:
-        petId:
-          type: integer
-          format: int64
-        healthStatus:
-          type: string
-        vaccinated:
-          type: boolean
-        sterilized:
-          type: boolean
-        personality:
-          type: string
-        habits:
-          type: string
-        favoriteActivities:
-          type: string
-        careInstructions:
-          type: string
-        diet:
-          type: string
-        adoptionRequirements:
-          type: string
-        reasonForAdoption:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    CreateAdoptionProfileRequest:
-      type: object
-      properties:
-        healthStatus:
-          type: string
-        vaccinated:
-          type: boolean
-        sterilized:
-          type: boolean
-        personality:
-          type: string
-        habits:
-          type: string
-        favoriteActivities:
-          type: string
-        careInstructions:
-          type: string
-        diet:
-          type: string
-        adoptionRequirements:
-          type: string
-        reasonForAdoption:
-          type: string
-
-    UpdateAdoptionProfileRequest:
-      type: object
-      properties:
-        healthStatus:
-          type: string
-        vaccinated:
-          type: boolean
-        sterilized:
-          type: boolean
-        personality:
-          type: string
-        habits:
-          type: string
-        favoriteActivities:
-          type: string
-        careInstructions:
-          type: string
-        diet:
-          type: string
-        adoptionRequirements:
-          type: string
-        reasonForAdoption:
-          type: string
-
-    PetMedia:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        type:
-          type: string
-          enum: [image, video]
-        role:
-          type: string
-          enum: [avatar, gallery]
-        url:
-          type: string
-        displayOrder:
-          type: integer
-
-    PetListResponse:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Pet'
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        size:
-          type: integer
-        number:
-          type: integer
-
-    # ============ ENCYCLOPEDIA SCHEMAS ============
-    AnimalClass:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        code:
-          type: string
-        description:
-          type: string
-
-    Species:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        classId:
-          type: integer
-          format: int64
-        className:
-          type: string
-        name:
-          type: string
-        scientificName:
-          type: string
-        description:
-          type: string
-
-    SpeciesDetail:
-      allOf:
-        - $ref: '#/components/schemas/Species'
-        - type: object
-          properties:
-            attributes:
-              type: array
-              items:
-                $ref: '#/components/schemas/SpeciesAttribute'
-            sections:
-              type: array
-              items:
-                $ref: '#/components/schemas/SpeciesSection'
-            media:
-              type: array
-              items:
-                $ref: '#/components/schemas/EncyclopediaMedia'
-
-    SpeciesAttribute:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        key:
-          type: string
-          example: weight
-        valueMin:
-          type: number
-        valueMax:
-          type: number
-        unit:
-          type: string
-          example: kg
-        displayOrder:
-          type: integer
-
-    SpeciesSection:
-      type: object
-      properties:
-        sectionCode:
-          type: string
-        sectionName:
-          type: string
-        content:
-          type: string
-
-    Breed:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        speciesId:
-          type: integer
-          format: int64
-        speciesName:
-          type: string
-        name:
-          type: string
-        origin:
-          type: string
-        shortDescription:
-          type: string
-        taxonomyType:
-          type: string
-          enum: [breed, subspecies]
-          description: Type of taxonomic classification - breed for cultivated varieties, subspecies for scientific classifications
-          example: breed
-
-    BreedDetail:
-      allOf:
-        - $ref: '#/components/schemas/Breed'
-        - type: object
-          properties:
-            attributes:
-              type: array
-              items:
-                $ref: '#/components/schemas/BreedAttribute'
-            sections:
-              type: array
-              items:
-                $ref: '#/components/schemas/BreedSection'
-            media:
-              type: array
-              items:
-                $ref: '#/components/schemas/EncyclopediaMedia'
-
-    BreedAttribute:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        key:
-          type: string
-          example: temperament
-        value:
-          type: string
-        displayOrder:
-          type: integer
-
-    BreedSection:
-      type: object
-      properties:
-        sectionCode:
-          type: string
-        sectionName:
-          type: string
-        content:
-          type: string
-        displayOrder:
-          type: integer
-
-    EncyclopediaMedia:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        type:
-          type: string
-          enum: [image, video]
-        role:
-          type: string
-          enum: [hero, gallery, thumbnail]
-        url:
-          type: string
-        displayOrder:
-          type: integer
-
-    SpeciesListResponse:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Species'
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        size:
-          type: integer
-        number:
-          type: integer
-
-    BreedListResponse:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Breed'
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        size:
-          type: integer
-        number:
-          type: integer
-
-    # ============ SOCIAL SCHEMAS ============
-    Post:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        authorId:
-          type: integer
-          format: int64
-        authorUsername:
-          type: string
-        authorAvatarUrl:
-          type: string
-        content:
-          type: string
-        hashtags:
-          type: string
-        type:
-          type: string
-          enum: [normal, adoption, sale]
-        contactInfo:
-          type: string
-        location:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        likeCount:
-          type: integer
-        commentCount:
-          type: integer
-        isLiked:
-          type: boolean
-          description: User hiện tại đã like hay chưa
-        media:
-          type: array
-          items:
-            $ref: '#/components/schemas/PostMedia'
-        pets:
-          type: array
-          items:
-            $ref: '#/components/schemas/Pet'
-
-    PostDetail:
-      allOf:
-        - $ref: '#/components/schemas/Post'
-        - type: object
-          properties:
-            comments:
-              type: array
-              items:
-                $ref: '#/components/schemas/Comment'
-
-    CreatePostRequest:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-          example: Tìm chủ mới cho bé cún dễ thương! 🐶
-        hashtags:
-          type: string
-          example: "#adoption #dog #cute"
-        type:
-          type: string
-          enum: [normal, adoption, sale]
-          example: adoption
-        contactInfo:
-          type: string
-          example: "0912345678"
-        location:
-          type: string
-          example: "Quận 1, TP.HCM"
-        petIds:
-          type: array
-          items:
-            type: integer
-            format: int64
-          description: Danh sách ID các thú cưng liên quan
-          example: [5, 8]
-        mediaUrls:
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaUrlRequest'
-          description: Danh sách URL ảnh/video đã upload
-          example:
-            - url: "https://res.cloudinary.com/xxx/image/upload/v123/pet1.jpg"
-              type: "image"
-            - url: "https://res.cloudinary.com/xxx/video/upload/v123/pet1.mp4"
-              type: "video"
-
-    UpdatePostRequest:
-      type: object
-      properties:
-        content:
-          type: string
-          example: Tìm chủ mới cho bé cún dễ thương! 🐶
-        hashtags:
-          type: string
-          example: "#adoption #dog #cute"
-        type:
-          type: string
-          enum: [normal, adoption, sale]
-          example: adoption
-        contactInfo:
-          type: string
-          example: "0912345678"
-        location:
-          type: string
-          example: "Quận 1, TP.HCM"
-        petIds:
-          type: array
-          items:
-            type: integer
-            format: int64
-          description: Danh sách ID các thú cưng liên quan
-          example: [5, 8]
-        mediaUrls:
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaUrlRequest'
-          description: Danh sách URL ảnh/video đã upload
-          example:
-            - url: "https://res.cloudinary.com/xxx/image/upload/v123/pet1.jpg"
-              type: "image"
-            - url: "https://res.cloudinary.com/xxx/video/upload/v123/pet1.mp4"
-              type: "video"
-
-    MediaUrlRequest:
-      type: object
-      required:
-        - url
-      properties:
-        url:
-          type: string
-          description: URL của ảnh/video đã upload lên Cloudinary
-          example: "https://res.cloudinary.com/xxx/image/upload/v123/pet1.jpg"
-        type:
-          type: string
-          enum: [image, video]
-          default: image
-          description: Loại media
-          example: "image"
-
-    PostMedia:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        type:
-          type: string
-          enum: [image, video]
-        url:
-          type: string
-        displayOrder:
-          type: integer
-
-    Comment:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        postId:
-          type: integer
-          format: int64
-        userId:
-          type: integer
-          format: int64
-        username:
-          type: string
-        userAvatarUrl:
-          type: string
-        parentId:
-          type: integer
-          format: int64
-        content:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        replyCount:
-          type: integer
-
-    CreateCommentRequest:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-        parentId:
-          type: integer
-          format: int64
-          description: ID của comment cha (nếu là reply)
-
-    PostListResponse:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Post'
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        size:
-          type: integer
-        number:
-          type: integer
-
-    CommentListResponse:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Comment'
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        size:
-          type: integer
-        number:
-          type: integer
-
-    # ============ NOTIFICATION SCHEMAS ============
-    Notification:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        userId:
-          type: integer
-          format: int64
-        type:
-          type: string
-          enum: [LIKE, COMMENT, FOLLOW, ADOPTION_REQUEST]
-        referenceId:
-          type: integer
-          format: int64
-          description: ID của object liên quan (postId, commentId, userId, petId)
-        isRead:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-        message:
-          type: string
-          description: Nội dung thông báo đã format
-
-    NotificationListResponse:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Notification'
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        size:
-          type: integer
-        number:
-          type: integer
-        unreadCount:
-          type: integer
-
-    # ============ ERROR SCHEMA ============
-    Error:
-      type: object
-      required:
-        - code
-        - message
-      properties:
-        code:
-          type: string
-          example: INVALID_INPUT
-        message:
-          type: string
-          example: Email đã tồn tại trong hệ thống
-        details:
-          type: object
-          additionalProperties: true
-
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "PawPlanet API",
+    "description": "PawPlanet Backend API - Social network for pets",
+    "contact": {
+      "name": "PawPlanet Team",
+      "email": "support@pawplanet.com"
+    },
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "https://pawplanet-ae61a47d7179.herokuapp.com",
+      "description": "Generated server url"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Encyclopedia - Breeds",
+      "description": "API quản lý các giống (breeds)"
+    },
+    {
+      "name": "Encyclopedia - Species",
+      "description": "API quản lý các loài (species)"
+    },
+    {
+      "name": "Encyclopedia - Species Attributes",
+      "description": "API quản lý các thuộc tính của species"
+    },
+    {
+      "name": "Authentication",
+      "description": "API xác thực người dùng"
+    },
+    {
+      "name": "Encyclopedia - Classes",
+      "description": "API quản lý các lớp động vật"
+    },
+    {
+      "name": "Health",
+      "description": "API kiểm tra trạng thái server"
+    },
+    {
+      "name": "Encyclopedia - Media",
+      "description": "API quản lý media của encyclopedia"
+    }
+  ],
+  "paths": {
+    "/api/v1/users/profile": {
+      "get": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "getMyProfile",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "updateMyInfo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/{id}": {
+      "put": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "updatePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/{id}": {
+      "get": {
+        "tags": [
+          "pet-controller"
+        ],
+        "operationId": "getPetById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetProfileDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "pet-controller"
+        ],
+        "operationId": "updatePet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePetRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetProfileDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/follow": {
+      "post": {
+        "tags": [
+          "follow-controller"
+        ],
+        "operationId": "follow",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "follow-controller"
+        ],
+        "operationId": "unfollow",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts": {
+      "get": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "getMyPosts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "createPost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets": {
+      "post": {
+        "tags": [
+          "pet-controller"
+        ],
+        "operationId": "createPet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePetRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetProfileDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/{id}/follow": {
+      "post": {
+        "tags": [
+          "pet-follow-controller"
+        ],
+        "operationId": "follow_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "pet-follow-controller"
+        ],
+        "operationId": "unfollow_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/sign": {
+      "post": {
+        "tags": [
+          "media-controller"
+        ],
+        "operationId": "generateUploadSignature",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaSignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaSignResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "resetPassword",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Đăng ký tài khoản mới",
+        "description": "Tạo tài khoản người dùng mới với email, username và password",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserEntity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh-token": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "refreshToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntrospectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Đăng nhập",
+        "description": "Đăng nhập và nhận JWT token để xác thực các request tiếp theo",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/introspect": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Xác thực token",
+        "description": "Kiểm tra token JWT có hợp lệ và còn hiệu lực không",
+        "operationId": "introspect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntrospectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseIntrospectResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "forgotPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "user-controller"
+        ],
+        "operationId": "getUserProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/following": {
+      "get": {
+        "tags": [
+          "follow-controller"
+        ],
+        "operationId": "getFollowing",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/followers": {
+      "get": {
+        "tags": [
+          "follow-controller"
+        ],
+        "operationId": "getFollowers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/follow/status": {
+      "get": {
+        "tags": [
+          "follow-controller"
+        ],
+        "operationId": "isFollowing",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/user/{userId}": {
+      "get": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "getPostsByUserId",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/pet/{petId}": {
+      "get": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "getPostsByPetId",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/{id}/followers": {
+      "get": {
+        "tags": [
+          "pet-follow-controller"
+        ],
+        "operationId": "getFollowers_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/{id}/follow/status": {
+      "get": {
+        "tags": [
+          "pet-follow-controller"
+        ],
+        "operationId": "isFollowing_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pets/users/{userId}/following": {
+      "get": {
+        "tags": [
+          "pet-follow-controller"
+        ],
+        "operationId": "getFollowingPets",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListPetProfileDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/upload-signature": {
+      "get": {
+        "tags": [
+          "media-controller"
+        ],
+        "operationId": "getUploadSignature",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Kiểm tra backend có hoạt động không",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/species": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Species"
+        ],
+        "summary": "Lấy danh sách species có phân trang",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagedResultSpeciesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/species/{speciesId}/gallery": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Media"
+        ],
+        "summary": "Lấy gallery của species với phân trang",
+        "operationId": "getSpeciesGallery",
+        "parameters": [
+          {
+            "name": "speciesId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagedResultEncyclopediaMediaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/species/{id}": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Species"
+        ],
+        "summary": "Lấy thông tin chi tiết species theo ID (bao gồm attributes và sections)",
+        "operationId": "getById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSpeciesDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/species-attributes/all": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Species Attributes"
+        ],
+        "summary": "Lấy tất cả thuộc tính theo species (không phân trang), sắp theo displayOrder",
+        "operationId": "listAll",
+        "parameters": [
+          {
+            "name": "speciesId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListSpeciesAttributeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/classes": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Classes"
+        ],
+        "summary": "Lấy danh sách các lớp động vật",
+        "operationId": "listAll_1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAnimalClassResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/classes/{id}": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Classes"
+        ],
+        "summary": "Lấy thông tin lớp động vật theo ID",
+        "operationId": "getById_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAnimalClassResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/classes/{classId}/species": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Classes"
+        ],
+        "summary": "Lấy danh sách species theo classId (có phân trang)",
+        "operationId": "getSpeciesByClass",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagedResultSpeciesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/classes/{classId}/gallery": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Media"
+        ],
+        "summary": "Lấy gallery của class với phân trang",
+        "operationId": "getClassGallery",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagedResultEncyclopediaMediaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/classes/code/{code}": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Classes"
+        ],
+        "summary": "Lấy thông tin lớp động vật theo mã (code)",
+        "operationId": "getByCode",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAnimalClassResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/breeds": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Breeds"
+        ],
+        "summary": "Lấy danh sách breeds có phân trang, optional filter: speciesId, taxonomyType",
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "speciesId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "taxonomyType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagedResultBreedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/breeds/{id}": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Breeds"
+        ],
+        "summary": "Lấy chi tiết breed theo ID (bao gồm attributes và sections)",
+        "operationId": "getById_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBreedDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/breeds/{breedId}/gallery": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Media"
+        ],
+        "summary": "Lấy gallery của breed với phân trang",
+        "operationId": "getBreedGallery",
+        "parameters": [
+          {
+            "name": "breedId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagedResultEncyclopediaMediaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/breeds/{breedId}/attributes": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Breeds"
+        ],
+        "summary": "Lấy tất cả attribute của breed (không phân trang)",
+        "operationId": "getAttributesByBreed",
+        "parameters": [
+          {
+            "name": "breedId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListBreedAttributeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encyclopedia/breeds/all": {
+      "get": {
+        "tags": [
+          "Encyclopedia - Breeds"
+        ],
+        "summary": "Lấy tất cả breeds theo species (không phân trang)",
+        "operationId": "listAllBySpecies",
+        "parameters": [
+          {
+            "name": "speciesId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListBreedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/{userId}": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Lấy thông tin user theo ID",
+        "description": "Endpoint này yêu cầu JWT authentication",
+        "operationId": "getUserById",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "verifyEmail",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UpdateProfileRequestDTO": {
+        "type": "object",
+        "properties": {
+          "avatarUrl": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          }
+        }
+      },
+      "UserProfileDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "followersCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "followingCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "petsCount": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MediaUrlRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdatePostRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "hashtags": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "contactInfo": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "petIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "mediaUrls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaUrlRequest"
+            }
+          }
+        }
+      },
+      "PostMediaDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PostPetDTO": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PostResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "authorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "authorUsername": {
+            "type": "string"
+          },
+          "authorAvatarUrl": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "hashtags": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "contactInfo": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "likeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "liked": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostMediaDTO"
+            }
+          },
+          "pets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostPetDTO"
+            }
+          }
+        }
+      },
+      "UpdatePetRequestDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "speciesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "breedId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "PetMediaDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PetProfileDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "speciesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "speciesName": {
+            "type": "string"
+          },
+          "breedId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "breedName": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PetMediaDTO"
+            }
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreatePostRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "hashtags": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "contactInfo": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "petIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "mediaUrls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaUrlRequest"
+            }
+          }
+        }
+      },
+      "CreatePetRequestDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "speciesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "breedId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "MediaSignRequest": {
+        "required": [
+          "context"
+        ],
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "enum": [
+              "USER_AVATAR",
+              "PET_AVATAR",
+              "PET_GALLERY",
+              "POST_MEDIA",
+              "ENCYCLOPEDIA_CLASS",
+              "ENCYCLOPEDIA_SPECIES",
+              "ENCYCLOPEDIA_BREED"
+            ]
+          },
+          "ownerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string"
+          }
+        }
+      },
+      "MediaSignResponse": {
+        "type": "object",
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "api_key": {
+            "type": "string"
+          },
+          "cloud_name": {
+            "type": "string"
+          },
+          "asset_folder": {
+            "type": "string"
+          },
+          "public_id": {
+            "type": "string"
+          },
+          "resource_type": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseObject": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "maxLength": 30,
+            "minLength": 3,
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 2147483647,
+            "minLength": 8,
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseUserEntity": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/UserEntity"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UserEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IntrospectRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseAuthResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/AuthResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "authenticated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseIntrospectResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/IntrospectResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "IntrospectResponse": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "oldPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "maxLength": 2147483647,
+            "minLength": 8,
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListUserResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserResponse"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseBoolean": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseListPetProfileDTO": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PetProfileDTO"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponsePagedResultSpeciesResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/PagedResultSpeciesResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedResultSpeciesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeciesResponse"
+            }
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SpeciesResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "scientificName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponsePagedResultEncyclopediaMediaResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/PagedResultEncyclopediaMediaResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EncyclopediaMediaResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedResultEncyclopediaMediaResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EncyclopediaMediaResponse"
+            }
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseSpeciesDetailResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/SpeciesDetailResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SpeciesAttributeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "speciesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "key": {
+            "type": "string"
+          },
+          "valueMin": {
+            "type": "number"
+          },
+          "valueMax": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SpeciesDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "scientificName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "heroUrl": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "galleryPreview": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EncyclopediaMediaResponse"
+            }
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeciesAttributeResponse"
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeciesSectionContentResponse"
+            }
+          }
+        }
+      },
+      "SpeciesSectionContentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "speciesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sectionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sectionCode": {
+            "type": "string"
+          },
+          "sectionName": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseListSpeciesAttributeResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeciesAttributeResponse"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AnimalClassResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListAnimalClassResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnimalClassResponse"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseAnimalClassResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/AnimalClassResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponsePagedResultBreedResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/PagedResultBreedResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BreedResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "speciesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": "string"
+          },
+          "taxonomyType": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "PagedResultBreedResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreedResponse"
+            }
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseBreedDetailResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/BreedDetailResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BreedAttributeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "breedId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BreedDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "speciesId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": "string"
+          },
+          "taxonomyType": {
+            "type": "string"
+          },
+          "heroUrl": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "galleryPreview": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EncyclopediaMediaResponse"
+            }
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreedAttributeResponse"
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreedSectionContentResponse"
+            }
+          }
+        }
+      },
+      "BreedSectionContentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "breedId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sectionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sectionCode": {
+            "type": "string"
+          },
+          "sectionName": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseListBreedAttributeResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreedAttributeResponse"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseListBreedResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreedResponse"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseUserResponse": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "description": "JWT Authentication - Nhập token nhận được từ /api/v1/auth/login",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

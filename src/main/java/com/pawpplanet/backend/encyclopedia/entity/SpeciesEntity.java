@@ -25,6 +25,9 @@ public class SpeciesEntity {
     @Column(name = "scientific_name")
     private String scientificName;
 
+    @Column(nullable = false, unique = true)
+    private String slug;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 }

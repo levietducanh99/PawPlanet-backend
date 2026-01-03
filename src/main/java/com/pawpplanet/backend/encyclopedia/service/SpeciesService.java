@@ -76,6 +76,7 @@ public class SpeciesService {
         r.setId(e.getId());
         r.setClassId(e.getClassId());
         r.setName(e.getName());
+        r.setSlug(e.getSlug());
         r.setScientificName(e.getScientificName());
         r.setDescription(e.getDescription());
 

@@ -8,6 +8,7 @@ public class BreedDetailResponse {
     private Long id;
     private Long speciesId;
     private String name;
+    private String slug;
     private String origin;
     private String shortDescription;
     private String taxonomyType;

@@ -36,6 +36,7 @@ public class AnimalClassService {
         r.setId(e.getId());
         r.setName(e.getName());
         r.setCode(e.getCode());
+        r.setSlug(e.getSlug());
         r.setDescription(e.getDescription());
         r.setAvatarUrl(mediaService.getThumbnailUrl("class", e.getId()));
         return r;

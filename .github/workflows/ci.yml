@@ -3,10 +3,13 @@ name: Backend CI
 on:
   pull_request:
     branches: [ "main", "dev" ]
+  push:
+    branches: [ "main", "dev" ]
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
 
     steps:
       - uses: actions/checkout@v4
@@ -17,5 +20,21 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+
       - name: Build & Test
+        env:
+          # Spring profile
+          SPRING_PROFILES_ACTIVE: test
+
+          # JWT secret for tests
+          JWT_SECRET: test-secret-key-for-ci-cd-testing-minimum-256-bits-required
+
+          # Cloudinary config for tests (using dummy values)
+          CLOUDINARY_CLOUD_NAME: test-cloud
+          CLOUDINARY_API_KEY: 123456789012345
+          CLOUDINARY_API_SECRET: abcdefghijklmnopqrstuvwxyz
+
+          # Disable Spring Cloud Config for tests
+          SPRING_CLOUD_CONFIG_ENABLED: false
+
         run: mvn clean test

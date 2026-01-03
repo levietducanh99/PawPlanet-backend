@@ -1,0 +1,42 @@
+# Test profile configuration
+# CI: Only unit tests, no database integration tests
+
+spring:
+  # Override config import to disable Spring Cloud Config completely
+  config:
+    import: "optional:file:.env[.properties]"
+
+  # Disable Spring Cloud Config for tests
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+
+  # Disable autoconfiguration for components that need database
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+  flyway:
+    enabled: false  # Disabled for unit tests
+
+# JWT configuration
+jwt:
+  secret: ${JWT_SECRET:test-secret-key-for-testing-minimum-256-bits-required}
+  expiration: 3600000
+
+# Cloudinary configuration (using dummy values for tests)
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:test-cloud}
+  api-key: ${CLOUDINARY_API_KEY:123456789012345}
+  api-secret: ${CLOUDINARY_API_SECRET:abcdefghijklmnopqrstuvwxyz}
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.pawpplanet.backend: INFO
+
