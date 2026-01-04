@@ -10,6 +10,7 @@ import com.pawpplanet.backend.pet.entity.PetMediaEntity;
 import com.pawpplanet.backend.pet.mapper.PetMapper;
 import com.pawpplanet.backend.pet.repository.PetMediaRepository;
 import com.pawpplanet.backend.pet.repository.PetRepository;
+import com.pawpplanet.backend.pet.service.FollowPetService;
 import com.pawpplanet.backend.pet.service.PetService;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -30,17 +33,20 @@ public class PetServiceImpl implements PetService {
     private final SpeciesRepository speciesRepository;
     private final BreedRepository breedRepository;
     private final PetMediaRepository petMediaRepository;
+    private final FollowPetService followPetService;
 
     public PetServiceImpl(PetRepository petRepository,
                           UserRepository userRepository,
                           SpeciesRepository speciesRepository,
                           BreedRepository breedRepository,
-                          PetMediaRepository petMediaRepository) {
+                          PetMediaRepository petMediaRepository,
+                          FollowPetService followPetService) {
         this.petRepository = petRepository;
         this.userRepository = userRepository;
         this.speciesRepository = speciesRepository;
         this.breedRepository = breedRepository;
         this.petMediaRepository = petMediaRepository;
+        this.followPetService = followPetService;
     }
 
     @Override
@@ -71,6 +77,8 @@ public class PetServiceImpl implements PetService {
         pet.setGender(request.getGender());
         pet.setDescription(request.getDescription());
         pet.setStatus(request.getStatus());
+        pet.setWeight(request.getWeight());
+        pet.setHeight(request.getHeight());
 
         pet.setOwnerId(user.getId());
 
@@ -93,6 +101,17 @@ public class PetServiceImpl implements PetService {
     public PetProfileDTO getPetById(Long petId) {
         PetEntity pet = petRepository.findById(petId)
                 .orElseThrow(() -> new RuntimeException("Pet not found"));
+
+        // Privacy check: if status is "private", only owner can view
+        Long currentUserId = getCurrentUserIdOrNull();
+        if ("private".equalsIgnoreCase(pet.getStatus())) {
+            if (currentUserId == null || !currentUserId.equals(pet.getOwnerId())) {
+                throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "This pet profile is private"
+                );
+            }
+        }
 
         // GIỮ NGUYÊN PHẦN CŨ CỦA BẠN
         List<PetMediaEntity> media =
@@ -151,6 +170,8 @@ public class PetServiceImpl implements PetService {
         if (request.getGender() != null) pet.setGender(request.getGender());
         if (request.getDescription() != null) pet.setDescription(request.getDescription());
         if (request.getStatus() != null) pet.setStatus(request.getStatus());
+        if (request.getWeight() != null) pet.setWeight(request.getWeight());
+        if (request.getHeight() != null) pet.setHeight(request.getHeight());
 
         petRepository.save(pet);
 
@@ -197,8 +218,52 @@ public class PetServiceImpl implements PetService {
             userRepository.findById(pet.getOwnerId())
                     .ifPresent(u -> dto.setOwnerUsername(u.getUsername()));
         }
+        
+        // Computed fields
+        Long currentUserId = getCurrentUserIdOrNull();
+        if (currentUserId != null) {
+            // isOwner
+            dto.setOwner(currentUserId.equals(pet.getOwnerId()));
+            
+            // isFollowing
+            try {
+                dto.setFollowing(followPetService.isFollowingPet(pet.getId()));
+            } catch (Exception e) {
+                dto.setFollowing(false);
+            }
+            
+            // canFollow = not owner AND not following
+            dto.setCanFollow(!dto.isOwner() && !dto.isFollowing());
+        } else {
+            // User not authenticated
+            dto.setOwner(false);
+            dto.setFollowing(false);
+            dto.setCanFollow(false);
+        }
+        
         return dto;
     }
+    
+    private Long getCurrentUserIdOrNull() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return null;
+            }
+            
+            String email = authentication.getName();
+            if (email == null || "anonymousUser".equals(email)) {
+                return null;
+            }
+            
+            return userRepository.findByEmail(email)
+                    .map(u -> u.getId())
+                    .orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
     private void validateSpeciesAndBreed(Long speciesId, Long breedId) {
         if (speciesId != null && !speciesRepository.existsById(speciesId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loài (Species) không tồn tại");

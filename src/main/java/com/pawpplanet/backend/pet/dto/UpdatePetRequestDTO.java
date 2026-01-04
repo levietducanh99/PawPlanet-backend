@@ -3,6 +3,7 @@ package com.pawpplanet.backend.pet.dto;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
@@ -23,4 +24,8 @@ public class UpdatePetRequestDTO {
     private String status;
 
     private String url;
+
+    private BigDecimal weight;
+
+    private BigDecimal height;
 }

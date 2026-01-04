@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -33,8 +34,12 @@ public class PetEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String status;  // owned | for_adoption
+    private String status;  // owned | for_adoption | private
 
     @Column(name = "owner_id")
     private Long ownerId;
+
+    private BigDecimal weight;
+
+    private BigDecimal height;
 }
