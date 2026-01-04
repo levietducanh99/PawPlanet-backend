@@ -1,0 +1,445 @@
+// PawPlanet – Pet Social Network & Encyclopedia Database
+// Use at: [https://dbdiagram.io/d](https://dbdiagram.io/d)
+// Database: PostgreSQL
+
+Project pawplanet {
+database_type: 'PostgreSQL'
+Note: '''
+PawPlanet Database Schema
+
+ENCYCLOPEDIA CORE:
+
+* Class > Species > Sub-taxonomy
+* Sub-taxonomy có thể là:
+
+  * breed (giống nuôi)
+  * subspecies (phân loài khoa học)
+
+DESIGN PRINCIPLES:
+
+* Species: kiến thức sinh học, trung lập
+* Sub-taxonomy: chi tiết hơn species, dùng cho hiển thị & phân loại
+* Breed = một loại sub-taxonomy, không phải cấp duy nhất
+* Section & Attribute để tránh hard-code
+  '''
+  }
+
+/////////////////////////////////////////////////////
+// AUTH SCHEMA
+/////////////////////////////////////////////////////
+
+Table auth.users {
+id bigint [pk, increment, note: 'Primary key người dùng']
+email varchar [not null, unique, note: 'Email đăng nhập']
+username varchar [not null, unique, note: 'Tên hiển thị']
+password varchar [not null, note: 'Mật khẩu đã hash']
+role varchar [note: 'USER | ADMIN']
+full_name varchar [note: 'Tên đầy đủ của người dùng (V8)']
+avatar_public_id text [note: 'Cloudinary public ID for avatar (V8)']
+avatar_url text [note: 'Ảnh đại diện (built from avatar_public_id)']
+cover_image_public_id text [note: 'Cloudinary public ID for cover image (V8)']
+cover_image_url text [note: 'URL ảnh bìa profile (V8)']
+bio text [note: 'Mô tả hồ sơ']
+is_verified boolean [note: 'Xác minh email']
+created_at timestamp [note: 'Thời điểm tạo']
+deleted_at timestamp [note: 'Soft delete']
+
+Indexes {
+  avatar_public_id
+  full_name
+}
+
+Note: '''
+V8 Migration:
+- Added full_name for display name
+- Added avatar_public_id & cover_image_public_id for Cloudinary integration
+- avatar_url and cover_image_url are built from public_id for optimization
+'''
+}
+
+Table auth.follow_user {
+follower_id bigint [pk, ref: > auth.users.id]
+following_id bigint [pk, ref: > auth.users.id]
+created_at timestamp
+
+Indexes {
+(follower_id, following_id)
+}
+
+Note: 'Quan hệ theo dõi giữa người dùng'
+}
+
+/////////////////////////////////////////////////////
+// ENCYCLOPEDIA SCHEMA
+/////////////////////////////////////////////////////
+
+// ---------- LEVEL 1: CLASS ----------
+
+Table encyclopedia.classes {
+id bigint [pk, increment]
+name varchar [not null, note: 'Tên hiển thị (VD: Động vật có vú)']
+code varchar [unique, note: 'Mã code (deprecated - use slug)']
+slug varchar [note: 'URL-friendly identifier (V6)']
+description text [note: 'Mô tả tổng quan']
+
+Note: '''
+V6 Migration: Added slug field for SEO-friendly URLs
+'''
+}
+
+// ---------- LEVEL 2: SPECIES ----------
+
+Table encyclopedia.species {
+id bigint [pk, increment]
+class_id bigint [ref: > encyclopedia.classes.id]
+name varchar [not null, note: 'Tên loài (VD: Chó)']
+slug varchar [note: 'URL-friendly identifier (V6)']
+scientific_name varchar [note: 'Tên khoa học']
+description text [note: 'Mô tả sinh học tổng quan']
+
+Note: '''
+Species = kiến thức trung lập, cố định cho mọi loài.
+Không cá nhân hóa theo hành vi nuôi.
+V6 Migration: Added slug field for SEO-friendly URLs
+'''
+}
+
+// ---------- SPECIES ATTRIBUTES (FIXED GROUP) ----------
+
+Table encyclopedia.species_attributes {
+id bigint [pk, increment]
+species_id bigint [ref: > encyclopedia.species.id]
+key varchar [not null, note: '''
+size | height | weight | life_span
+population | top_speed
+''']
+value_min numeric [note: 'Giá trị nhỏ nhất']
+value_max numeric [note: 'Giá trị lớn nhất']
+unit varchar [note: 'kg | cm | years | km/h']
+display_order int
+
+Note: '''
+Attribute đo lường cho Species.
+Dùng cho section "Attribute".
+'''
+}
+
+// ---------- SPECIES SECTIONS (CỐ ĐỊNH) ----------
+
+Table encyclopedia.species_sections {
+id bigint [pk, increment]
+code varchar [unique, not null, note: '''
+attribute
+appearance
+habitat
+habits_lifestyle
+gallery
+breed_list
+recommendation
+''']
+display_name varchar [not null]
+description text
+
+Note: '''
+Section cố định cho Species.
+Mọi loài đều phải có đủ các section này.
+'''
+}
+
+Table encyclopedia.species_section_contents {
+id bigint [pk, increment]
+species_id bigint [ref: > encyclopedia.species.id]
+section_id bigint [ref: > encyclopedia.species_sections.id]
+language varchar [note: 'vi | en']
+content text [note: 'Nội dung markdown / html']
+
+Note: '''
+Nội dung text cho section Species
+(trừ Attribute & Gallery).
+'''
+}
+
+// ---------- LEVEL 3: BREED ----------
+
+Table encyclopedia.breeds {
+id bigint [pk, increment]
+species_id bigint [ref: > encyclopedia.species.id]
+name varchar [not null]
+slug varchar [note: 'URL-friendly identifier (V6)']
+taxonomy_type varchar [not null, default: 'breed', note: 'breed | subspecies']
+origin varchar [note: 'Nguồn gốc (áp dụng chủ yếu cho breed)']
+short_description text [note: 'Mô tả ngắn hiển thị card']
+
+Note: '''
+Sub-taxonomy dưới species.
+
+* taxonomy_type = breed: giống nuôi, user-centric
+* taxonomy_type = subspecies: phân loài khoa học
+
+V6 Migration: Added slug field for SEO-friendly URLs
+'''
+}
+
+// ---------- BREED ATTRIBUTES ----------
+
+Table encyclopedia.breed_attributes {
+id bigint [pk, increment]
+breed_id bigint [ref: > encyclopedia.breeds.id]
+key varchar [not null, note: '''
+temperament | energy_level | shedding
+trainability | friendliness
+''']
+value varchar [note: 'Text hoặc enum']
+display_order int
+
+Note: 'Attribute định tính cho giống'
+}
+
+// ---------- BREED SECTIONS (LINH HOẠT) ----------
+
+Table encyclopedia.breed_sections {
+id bigint [pk, increment]
+code varchar [unique, not null, note: '''
+nutrition
+training
+health
+grooming
+activities
+''']
+display_name varchar
+description text
+
+Note: '''
+Danh sách section khả dụng cho Breed.
+Breed chỉ hiển thị section khi có content tương ứng.
+  'Xác định breed có section nào'
+'''
+
+}
+
+
+
+Table encyclopedia.breed_section_contents {
+id bigint [pk, increment]
+breed_id bigint [ref: > encyclopedia.breeds.id]
+section_id bigint [ref: > encyclopedia.breed_sections.id]
+language varchar
+content text
+display_order int [note: 'Thứ tự hiển thị section cho breed']
+
+Note: '''
+Nội dung chi tiết cho section của Breed.
+Sự tồn tại của record = Breed có section đó.
+'''
+}
+
+// ---------- SHARED MEDIA ----------
+
+Table encyclopedia.media {
+id bigint [pk, increment]
+entity_type varchar [note: 'class | species | breed']
+entity_id bigint [note: 'ID của entity']
+type varchar [note: 'image | video']
+role varchar [note: 'hero | gallery | thumbnail']
+url text
+display_order int
+
+Note: '''
+Media polymorphic cho Encyclopedia.
+Gallery Species = entity_type=species
+'''
+}
+
+/////////////////////////////////////////////////////
+// PET SCHEMA
+/////////////////////////////////////////////////////
+
+Table pet.pets {
+id bigint [pk, increment]
+name varchar
+species_id bigint [ref: > encyclopedia.species.id]
+breed_id bigint [ref: > encyclopedia.breeds.id]
+birth_date date [note: 'Ngày sinh (nullable nếu không rõ)']
+gender varchar
+description text [note: 'Giới thiệu pet']
+status varchar [note: 'owned | for_adoption']
+owner_id bigint [ref: > auth.users.id]
+weight numeric [note: 'Cân nặng (kg) - V7']
+height numeric [note: 'Chiều cao (cm) - V7']
+
+Note: '''
+V7 Migration: Added weight and height fields
+'''
+}
+
+Table pet.pet_adoption_profiles {
+pet_id bigint [pk, ref: > pet.pets.id, note: 'Pet tìm người nhận nuôi']
+
+health_status text [note: 'Tình trạng sức khỏe tổng quát']
+vaccinated boolean [note: 'Đã tiêm phòng hay chưa']
+sterilized boolean [note: 'Đã triệt sản hay chưa']
+
+personality text [note: 'Tính cách (hiền, nhút nhát, năng động,...)']
+habits text [note: 'Thói quen sinh hoạt']
+favorite_activities text [note: 'Sở thích (chạy bộ, chơi bóng,...)']
+
+care_instructions text [note: 'Cách chăm sóc / lưu ý đặc biệt']
+diet text [note: 'Chế độ ăn hiện tại']
+
+adoption_requirements text [note: 'Yêu cầu đối với người nhận nuôi']
+reason_for_adoption text [note: 'Lý do cho nhận nuôi']
+
+created_at timestamp [note: 'Thời điểm đăng tìm người nhận nuôi']
+updated_at timestamp [note: 'Lần cập nhật gần nhất']
+
+Note: '''
+Hồ sơ CHỈ tồn tại nếu pet ở trạng thái for_adoption.
+Không dùng cho pet đã có chủ.
+'''
+}
+
+// ---------- PET MEDIA ----------
+
+Table pet.pet_media {
+id bigint [pk, increment, note: 'Primary key media']
+pet_id bigint [ref: > pet.pets.id, note: 'Thuộc pet']
+type varchar [note: 'image | video']
+role varchar [note: 'avatar | gallery']
+public_id text [note: 'Cloudinary public ID (V8)']
+url text [note: 'Đường dẫn media (built from public_id)']
+display_order int [note: 'Thứ tự hiển thị']
+
+Indexes {
+  public_id
+}
+
+Note: '''
+Media riêng của pet (không phải media của post)
+
+V8 Migration:
+- Added public_id for Cloudinary integration
+- URL is built dynamically from public_id with optimizations
+'''
+}
+
+// ---------- PET FOLLOW ----------
+
+Table pet.follow_pet {
+user_id bigint [ref: > auth.users.id, note: 'Người theo dõi']
+pet_id bigint [ref: > pet.pets.id, note: 'Pet được theo dõi']
+created_at timestamp [note: 'Thời điểm follow']
+
+Indexes {
+(user_id, pet_id) [pk]
+}
+
+Note: 'User theo dõi pet'
+}
+
+/////////////////////////////////////////////////////
+// SOCIAL SCHEMA
+/////////////////////////////////////////////////////
+
+Table social.posts {
+id bigint [pk, increment, note: 'Primary key bài viết']
+author_id bigint [ref: > auth.users.id, note: 'Người tạo bài viết']
+content text [note: 'Nội dung chính']
+hashtags text [note: 'Danh sách hashtag dạng text']
+type varchar [note: 'normal | adoption | sale']
+contact_info varchar [note: 'Thông tin liên hệ nếu là adoption/sale']
+location varchar [note: 'Địa điểm']
+created_at timestamp [note: 'Thời điểm tạo']
+deleted_at timestamp [note: 'Soft delete']
+
+Note: '''
+Bài viết mạng xã hội.
+Có thể gắn nhiều pet.
+Có comment, like, media.
+'''
+}
+
+// ---------- POST ↔ PET (N-N) ----------
+
+Table social.post_pet {
+post_id bigint [ref: > social.posts.id, note: 'Bài viết']
+pet_id bigint [ref: > pet.pets.id, note: 'Pet được gắn']
+
+Indexes {
+(post_id, pet_id) [pk]
+}
+
+Note: '''
+Một post có thể gắn nhiều pet.
+Một pet có thể xuất hiện trong nhiều post.
+'''
+}
+
+// ---------- POST MEDIA ----------
+
+Table social.post_media {
+  id bigint [pk, increment]
+  post_id bigint [ref: > social.posts.id]
+  type varchar [note: 'image | video']
+  public_id text [note: 'Cloudinary public ID (V8)']
+  url text [note: 'Đường dẫn media (built from public_id)']
+  display_order int [note: 'Thứ tự hiển thị']
+
+  Indexes {
+    public_id
+  }
+
+  Note: '''
+  Media của bài viết
+
+  V8 Migration:
+  - Added public_id for Cloudinary integration
+  - URL is built dynamically from public_id
+  '''
+}
+
+// ---------- COMMENTS (CÓ REPLY) ----------
+
+Table social.comments {
+id bigint [pk, increment, note: 'Primary key comment']
+post_id bigint [ref: > social.posts.id, note: 'Thuộc post']
+user_id bigint [ref: > auth.users.id, note: 'Người comment']
+parent_id bigint [ref: > social.comments.id, note: 'Comment cha (reply)']
+content text [note: 'Nội dung comment']
+created_at timestamp [note: 'Thời điểm tạo']
+deleted_at timestamp [note: 'Soft delete']
+
+Note: '''
+Comment dạng tree (parent_id).
+NULL parent_id = comment gốc.
+'''
+}
+
+// ---------- LIKES ----------
+
+Table social.likes {
+user_id bigint [ref: > auth.users.id, note: 'Người like']
+post_id bigint [ref: > social.posts.id, note: 'Post được like']
+created_at timestamp [note: 'Thời điểm like']
+
+Indexes {
+(user_id, post_id) [pk]
+}
+
+Note: '''
+Like theo mô hình N-N.
+1 user chỉ like 1 post 1 lần.
+'''
+}
+
+/////////////////////////////////////////////////////
+// NOTIFICATION SCHEMA
+/////////////////////////////////////////////////////
+
+Table notification.notifications {
+id bigint [pk, increment]
+user_id bigint [ref: > auth.users.id]
+type varchar
+reference_id bigint
+is_read boolean
+created_at timestamp
+}
