@@ -355,6 +355,47 @@
         }
       }
     },
+    "/api/v1/pets/{id}/gallery": {
+      "post": {
+        "tags": [
+          "pet-controller"
+        ],
+        "operationId": "addMediaToGallery",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPetMediaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddPetMediaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{id}/follow": {
       "post": {
         "tags": [
@@ -1752,7 +1793,13 @@
       "UpdateProfileRequestDTO": {
         "type": "object",
         "properties": {
-          "avatarUrl": {
+          "fullName": {
+            "type": "string"
+          },
+          "avatarPublicId": {
+            "type": "string"
+          },
+          "coverImagePublicId": {
             "type": "string"
           },
           "bio": {
@@ -1773,10 +1820,16 @@
           "username": {
             "type": "string"
           },
+          "fullName": {
+            "type": "string"
+          },
           "role": {
             "type": "string"
           },
           "avatarUrl": {
+            "type": "string"
+          },
+          "coverImageUrl": {
             "type": "string"
           },
           "bio": {
@@ -1800,6 +1853,18 @@
           "petsCount": {
             "type": "integer",
             "format": "int64"
+          },
+          "isMe": {
+            "type": "boolean"
+          },
+          "isFollowing": {
+            "type": "boolean"
+          },
+          "isFollowedBy": {
+            "type": "boolean"
+          },
+          "canFollow": {
+            "type": "boolean"
           }
         }
       },
@@ -1963,7 +2028,7 @@
           "status": {
             "type": "string"
           },
-          "url": {
+          "avatarPublicId": {
             "type": "string"
           },
           "weight": {
@@ -2149,6 +2214,58 @@
           }
         }
       },
+      "AddPetMediaRequest": {
+        "required": [
+          "mediaItems"
+        ],
+        "type": "object",
+        "properties": {
+          "mediaItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaItem"
+            }
+          }
+        }
+      },
+      "MediaItem": {
+        "required": [
+          "publicId",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "type": {
+            "pattern": "^(image|video)$",
+            "type": "string"
+          }
+        }
+      },
+      "AddPetMediaResponse": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "addedMedia": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PetMediaDTO"
+            }
+          },
+          "totalGalleryCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "MediaSignRequest": {
         "required": [
           "context"
@@ -2159,6 +2276,7 @@
             "type": "string",
             "enum": [
               "USER_AVATAR",
+              "USER_COVER",
               "PET_AVATAR",
               "PET_GALLERY",
               "POST_MEDIA",
@@ -2287,7 +2405,19 @@
           "role": {
             "type": "string"
           },
+          "fullName": {
+            "type": "string"
+          },
+          "avatarPublicId": {
+            "type": "string"
+          },
           "avatarUrl": {
+            "type": "string"
+          },
+          "coverImagePublicId": {
+            "type": "string"
+          },
+          "coverImageUrl": {
             "type": "string"
           },
           "bio": {
