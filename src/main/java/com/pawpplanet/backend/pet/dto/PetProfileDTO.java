@@ -3,6 +3,7 @@ package com.pawpplanet.backend.pet.dto;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,6 +23,14 @@ public class PetProfileDTO {
     private String status;
     private Long ownerId;
     private String ownerUsername;
+
+    private BigDecimal weight;
+    private BigDecimal height;
+
+    // Computed fields (not persisted)
+    private boolean isOwner;
+    private boolean isFollowing;
+    private boolean canFollow;
 
     // Bổ sung danh sách media
     private List<PetMediaDTO> media;

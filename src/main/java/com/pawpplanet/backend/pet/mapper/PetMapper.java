@@ -42,6 +42,8 @@ public class PetMapper {
         dto.setDescription(e.getDescription());
         dto.setStatus(e.getStatus());
         dto.setOwnerId(e.getOwnerId());
+        dto.setWeight(e.getWeight());
+        dto.setHeight(e.getHeight());
         return dto;
     }
 
