@@ -46,6 +46,21 @@ public class SpeciesService {
         return result;
     }
 
+    // New: search species by keyword (name or scientificName), paged; page param is 1-based
+    public PagedResult<SpeciesResponse> searchSpecies(String q, int page, int size) {
+        String keyword = q == null ? "" : q.trim();
+        int zeroBasedPage = Math.max(0, page - 1);
+        Pageable pageable = PageRequest.of(zeroBasedPage, Math.max(1, size));
+        Page<SpeciesEntity> p = speciesRepository.findByNameContainingIgnoreCaseOrScientificNameContainingIgnoreCase(keyword, keyword, pageable);
+
+        PagedResult<SpeciesResponse> result = new PagedResult<>();
+        result.setItems(p.getContent().stream().map(this::toDto).collect(Collectors.toList()));
+        result.setTotalElements(p.getTotalElements());
+        result.setPage(p.getNumber() + 1);
+        result.setSize(p.getSize());
+        return result;
+    }
+
     public Optional<SpeciesResponse> getById(Long id) {
         return speciesRepository.findById(id).map(this::toDto);
     }

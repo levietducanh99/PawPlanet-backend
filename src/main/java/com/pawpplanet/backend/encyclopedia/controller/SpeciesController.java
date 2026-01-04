@@ -32,6 +32,19 @@ public class SpeciesController {
         return ResponseEntity.ok(resp);
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Tìm kiếm species theo từ khoá (name hoặc scientificName)")
+    public ResponseEntity<ApiResponse<PagedResult<SpeciesResponse>>> search(
+            @RequestParam(value = "q") String q,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size
+    ) {
+        ApiResponse<PagedResult<SpeciesResponse>> resp = new ApiResponse<>();
+        resp.setResult(service.searchSpecies(q, page, size));
+        resp.setStatusCode(0);
+        return ResponseEntity.ok(resp);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Lấy thông tin chi tiết species theo ID (bao gồm attributes và sections)")
     public ResponseEntity<ApiResponse<SpeciesDetailResponse>> getById(@PathVariable Long id) {
@@ -41,4 +54,3 @@ public class SpeciesController {
         return ResponseEntity.ok(resp);
     }
 }
-

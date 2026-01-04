@@ -19,4 +19,10 @@ public interface SpeciesRepository extends JpaRepository<SpeciesEntity, Long> {
     Optional<SpeciesEntity> findBySlug(String slug);
 
     boolean existsBySlug(String slug);
+
+    // Search by keyword in name or scientific name (paged)
+    Page<SpeciesEntity> findByNameContainingIgnoreCaseOrScientificNameContainingIgnoreCase(String name, String scientificName, Pageable pageable);
+
+    // Non-paged search used by cross-entity search aggregator
+    List<SpeciesEntity> findByNameContainingIgnoreCaseOrScientificNameContainingIgnoreCase(String name, String scientificName);
 }

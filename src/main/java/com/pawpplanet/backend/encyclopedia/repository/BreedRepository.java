@@ -30,4 +30,8 @@ public interface BreedRepository extends JpaRepository<BreedEntity, Long> {
     Optional<BreedEntity> findBySlug(String slug);
 
     boolean existsBySlug(String slug);
+
+    // Search by name (paged and non-paged)
+    Page<BreedEntity> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    List<BreedEntity> findByNameContainingIgnoreCase(String name);
 }
