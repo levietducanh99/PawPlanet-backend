@@ -188,28 +188,25 @@ public class MediaServiceImpl implements MediaService {
 
     /**
      * Optionally determine public_id for specific contexts
-     * For avatars, we can use a fixed name to ensure replacement
-     * For galleries and posts, we let Cloudinary generate unique IDs
+     * Only set for encyclopedia (using slug)
+     * For user/pet media, let Cloudinary generate unique IDs
      */
     private String determinePublicId(MediaSignRequest request) {
         UploadContext context = request.getContext();
 
         switch (context) {
-            case USER_AVATAR:
-            case USER_COVER:
-            case PET_AVATAR:
-                // For avatars and covers, use fixed name so uploads replace the old one
-                return "avatar";
-
             case ENCYCLOPEDIA_CLASS:
             case ENCYCLOPEDIA_SPECIES:
             case ENCYCLOPEDIA_BREED:
                 // For encyclopedia, use slug as public_id
                 return request.getSlug();
 
+            case USER_AVATAR:
+            case USER_COVER:
+            case PET_AVATAR:
             case PET_GALLERY:
             case POST_MEDIA:
-                // For galleries and posts, let Cloudinary generate unique IDs
+                // Let Cloudinary generate unique IDs (no replacement)
                 return null;
 
             default:

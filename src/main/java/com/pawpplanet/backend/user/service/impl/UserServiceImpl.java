@@ -123,21 +123,23 @@ public class UserServiceImpl implements UserService {
         // Add computed fields for follow relationships
         Long currentUserId = getCurrentUserIdOrNull();
         if (currentUserId != null) {
-            // Check if viewing own profile
-            dto.setIsMe(currentUserId.equals(user.getId()));
+            boolean isMe = currentUserId.equals(user.getId());
+            dto.setIsMe(isMe);
 
-            // Check if current user is following this user
-            dto.setIsFollowing(followUserRepository.existsById(
-                    new com.pawpplanet.backend.user.entity.FollowUserId(currentUserId, user.getId())
-            ));
+            if (isMe) {
+                // Viewing own profile - skip all checks
+                dto.setIsFollowing(false);
+                dto.setIsFollowedBy(false);
+                dto.setCanFollow(false);
+            } else {
+                // Optimized: Use custom query instead of creating composite key objects
+                boolean isFollowing = followUserRepository.existsFollow(currentUserId, user.getId());
+                boolean isFollowedBy = followUserRepository.existsFollow(user.getId(), currentUserId);
 
-            // Check if this user is following current user (is this user my follower?)
-            dto.setIsFollowedBy(followUserRepository.existsById(
-                    new com.pawpplanet.backend.user.entity.FollowUserId(user.getId(), currentUserId)
-            ));
-
-            // Can follow if: not me AND not already following
-            dto.setCanFollow(!dto.getIsMe() && !dto.getIsFollowing());
+                dto.setIsFollowing(isFollowing);
+                dto.setIsFollowedBy(isFollowedBy);
+                dto.setCanFollow(!isFollowing);
+            }
         } else {
             // Not authenticated
             dto.setIsMe(false);
