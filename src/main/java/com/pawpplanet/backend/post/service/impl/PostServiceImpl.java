@@ -1,5 +1,10 @@
 package com.pawpplanet.backend.post.service.impl;
 
+import com.pawpplanet.backend.encyclopedia.repository.BreedRepository;
+import com.pawpplanet.backend.encyclopedia.repository.SpeciesRepository;
+import com.pawpplanet.backend.pet.entity.PetEntity;
+import com.pawpplanet.backend.pet.repository.PetMediaRepository;
+import com.pawpplanet.backend.pet.repository.PetRepository;
 import com.pawpplanet.backend.post.dto.CreatePostRequest;
 import com.pawpplanet.backend.post.dto.MediaUrlRequest;
 import com.pawpplanet.backend.post.dto.PostResponse;
@@ -31,6 +36,11 @@ public class PostServiceImpl implements PostService {
     private final PostPetRepository postPetRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final SpeciesRepository speciesRepository;
+    private final BreedRepository breedRepository;
+    private final PetRepository petRepository;
+    private final PetMediaRepository petMediaRepository;
+
 
     public PostServiceImpl(
             PostRepository postRepository,
@@ -38,7 +48,11 @@ public class PostServiceImpl implements PostService {
             PostMediaRepository postMediaRepository,
             PostPetRepository postPetRepository,
             LikeRepository likeRepository,
-            CommentRepository commentRepository
+            CommentRepository commentRepository,
+            SpeciesRepository speciesRepository,
+            BreedRepository breedRepository,
+            PetRepository petRepository,
+            PetMediaRepository petMediaRepository
     ) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
@@ -46,6 +60,10 @@ public class PostServiceImpl implements PostService {
         this.postPetRepository = postPetRepository;
         this.likeRepository = likeRepository;
         this.commentRepository = commentRepository;
+        this.speciesRepository = speciesRepository;
+        this.breedRepository = breedRepository;
+        this.petRepository = petRepository;
+        this.petMediaRepository = petMediaRepository;
     }
 
     // ================= CREATE =================
@@ -147,6 +165,38 @@ public class PostServiceImpl implements PostService {
         List<PostPetEntity> pets =
                 postPetRepository.findByPostId(post.getId());
 
+        List<PostResponse.PostPetDTO> petDtos = pets.stream().map(link -> {
+            PetEntity pet = petRepository.findById(link.getPetId()).orElse(null);
+            PostResponse.PostPetDTO dto = new PostResponse.PostPetDTO();
+
+            if (pet != null) {
+                dto.setId(pet.getId());
+                dto.setName(pet.getName());
+                dto.setOwnerId(pet.getOwnerId());
+
+                if (pet.getSpeciesId() != null) {
+                    speciesRepository.findById(pet.getSpeciesId())
+                            .ifPresent(s -> dto.setSpeciesName(s.getName()));
+                }
+
+                if (pet.getBreedId() != null) {
+                    breedRepository.findById(pet.getBreedId())
+                            .ifPresent(b -> dto.setBreedName(b.getName()));
+                }
+
+                userRepository.findById(pet.getOwnerId())
+                        .ifPresent(u -> dto.setOwnerUsername(u.getUsername()));
+
+                petMediaRepository.findByPetId(pet.getId()).stream()
+                        .filter(m -> "avatar".equals(m.getRole()))
+                        .findFirst()
+                        .ifPresent(m -> dto.setAvatarUrl(m.getUrl()));
+
+
+            }
+            return dto;
+        }).toList();
+
         int likeCount =
                 likeRepository.countByPostId(post.getId());
 
@@ -165,7 +215,7 @@ public class PostServiceImpl implements PostService {
                 post,
                 author,
                 media,
-                pets,
+                petDtos,
                 likeCount,
                 commentCount,
                 liked

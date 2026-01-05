@@ -14,7 +14,7 @@ public class PostMapper {
             PostEntity post,
             UserEntity author,
             List<PostMediaEntity> media,
-            List<PostPetEntity> pets,
+            List<PostResponse.PostPetDTO> petDtos,
             int likeCount,
             int commentCount,
             boolean liked
@@ -47,16 +47,7 @@ public class PostMapper {
             );
         }
 
-        if (pets != null) {
-            res.setPets(
-                    pets.stream().map(p -> {
-                        PostResponse.PostPetDTO dto =
-                                new PostResponse.PostPetDTO();
-                        dto.setPetId(p.getPetId());
-                        return dto;
-                    }).toList()
-            );
-        }
+        res.setPets(petDtos);
         res.setLikeCount(likeCount);
         res.setCommentCount(commentCount);
         res.setLiked(liked);

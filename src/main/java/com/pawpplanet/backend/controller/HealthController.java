@@ -15,7 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "Health", description = "API kiểm tra trạng thái server")
-public class HealthController {
+public class   HealthController {
 
     @GetMapping("/health")
     @Operation(

@@ -52,6 +52,12 @@ public class PostResponse {
     @Getter
     @Setter
     public static class PostPetDTO {
-        private Long petId;
+        private Long id;
+        private String name;
+        private String breedName;
+        private String speciesName;
+        private String avatarUrl;
+        private Long ownerId;
+        private String ownerUsername;
     }
 }

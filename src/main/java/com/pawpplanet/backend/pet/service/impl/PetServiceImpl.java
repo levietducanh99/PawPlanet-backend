@@ -120,11 +120,7 @@ public class PetServiceImpl implements PetService {
         }
 
         // GIỮ NGUYÊN PHẦN CŨ CỦA BẠN
-        List<PetMediaEntity> media =
-                petMediaRepository.findAll()
-                        .stream()
-                        .filter(m -> m.getPetId().equals(petId))
-                        .toList();
+        List<PetMediaEntity> media = petMediaRepository.findByPetId(petId);
 
         // CHỈ THÊM PHẦN NÀY
         PetProfileDTO dto = PetMapper.toProfileDTO(pet, media);
