@@ -29,7 +29,15 @@ public enum ErrorCode {
     SLUG_NOT_FOUND(404, "The specified slug does not exist in the database"),
     MEDIA_SIGNATURE_GENERATION_FAILED(500, "Failed to generate upload signature"),
     PET_NOT_FOUND(404, "Pet not found"),
-    UNAUTHORIZED_PET_ACCESS(403, "You do not have permission to upload media for this pet")
+    UNAUTHORIZED_PET_ACCESS(403, "You do not have permission to upload media for this pet"),
+
+    // Admin and Encyclopedia errors
+    ADMIN_ACCESS_REQUIRED(403, "Admin access required for this operation"),
+    SPECIES_NOT_FOUND(404, "Species not found"),
+    BREED_NOT_FOUND(404, "Breed not found"),
+    ANIMAL_CLASS_NOT_FOUND(404, "Animal class not found"),
+    INVALID_MEDIA_ROLE(400, "Invalid media role. Must be 'hero', 'gallery', or 'thumbnail'"),
+    INVALID_MEDIA_TYPE(400, "Invalid media type. Must be 'image' or 'video'")
     ;
     private int code;
     private String message;
