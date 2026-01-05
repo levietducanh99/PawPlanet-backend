@@ -33,7 +33,7 @@ public class LikeServiceImpl implements LikeService {
     @Override
     public LikeResponse toggleLike(LikeRequest request) {
 
-        Long userId = securityHelper.getCurrentUserIdOrNull();
+        Long userId = securityHelper.getCurrentUser().getId();
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }

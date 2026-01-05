@@ -28,7 +28,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentResponse createComment(CommentRequest request) {
 
-        Long userId = securityHelper.getCurrentUserIdOrNull();
+        Long userId = securityHelper.getCurrentUser().getId();
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         }

@@ -9,6 +9,8 @@ import com.pawpplanet.backend.user.mapper.UserMapper;
 import com.pawpplanet.backend.user.repository.FollowUserRepository;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import com.pawpplanet.backend.user.service.UserService;
+import com.pawpplanet.backend.utils.SecurityHelper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,24 +20,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final FollowUserRepository followUserRepository;
     private final PetRepository petRepository;
     private final CloudinaryUrlBuilder cloudinaryUrlBuilder;
+    private final SecurityHelper securityHelper;
 
-    public UserServiceImpl(
-            UserRepository userRepository,
-            FollowUserRepository followUserRepository,
-            PetRepository petRepository,
-            CloudinaryUrlBuilder cloudinaryUrlBuilder
-    ) {
-        this.userRepository = userRepository;
-        this.followUserRepository = followUserRepository;
-        this.petRepository = petRepository;
-        this.cloudinaryUrlBuilder = cloudinaryUrlBuilder;
-    }
+
 
     @Override
     public UserProfileDTO viewProfile() {
@@ -121,7 +115,7 @@ public class UserServiceImpl implements UserService {
         );
 
         // Add computed fields for follow relationships
-        Long currentUserId = getCurrentUserIdOrNull();
+        Long currentUserId = securityHelper.getCurrentUser().getId();
         if (currentUserId != null) {
             boolean isMe = currentUserId.equals(user.getId());
             dto.setIsMe(isMe);
@@ -151,23 +145,4 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
 
-    private Long getCurrentUserIdOrNull() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return null;
-            }
-
-            String email = authentication.getName();
-            if (email == null || "anonymousUser".equals(email)) {
-                return null;
-            }
-
-            return userRepository.findByEmail(email)
-                    .map(UserEntity::getId)
-                    .orElse(null);
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }
