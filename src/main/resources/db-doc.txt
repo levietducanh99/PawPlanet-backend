@@ -436,10 +436,68 @@ Like theo mô hình N-N.
 /////////////////////////////////////////////////////
 
 Table notification.notifications {
-id bigint [pk, increment]
-user_id bigint [ref: > auth.users.id]
-type varchar
-reference_id bigint
-is_read boolean
-created_at timestamp
+id bigint [pk, increment, note: 'Primary key notification']
+recipient_id bigint [ref: > auth.users.id, note: 'Người nhận notification']
+actor_id bigint [ref: > auth.users.id, note: 'Người thực hiện hành động (nullable cho system)']
+type varchar(50) [not null, note: 'FOLLOW_USER | FOLLOW_PET | LIKE_POST | COMMENT_POST | SYSTEM']
+target_type varchar(50) [note: 'Loại đối tượng: USER | PET | POST | COMMENT']
+target_id bigint [note: 'ID của target tương ứng với target_type']
+metadata jsonb [note: 'Dữ liệu mở rộng JSON (actorUsername, petName, postPreview, etc.)']
+is_read boolean [default: false, note: 'Trạng thái đã đọc']
+created_at timestamp [not null, default: `now()`, note: 'Thời điểm tạo']
+
+Indexes {
+  recipient_id
+  (recipient_id, is_read)
+  type
+  actor_id
+  created_at [note: 'DESC']
+}
+
+Note: '''
+V9 Migration: Redesigned notifications table for flexibility
+
+DESIGN PRINCIPLES:
+- Notification = (actor) làm gì (type) lên (target) → gửi cho (recipient)
+- No separate tables per notification type
+- No DB migration when adding new types
+- FE renders based on type + metadata
+- Extensible via JSONB metadata
+
+NOTIFICATION TYPES:
+- FOLLOW_USER: Someone followed you
+- FOLLOW_PET: Someone followed your pet
+- LIKE_POST: Someone liked your post
+- COMMENT_POST: Someone commented on your post
+- SYSTEM: System notifications
+
+TARGET TYPES guide FE navigation:
+- USER → userId for profile navigation
+- PET → petId for pet profile
+- POST → postId for post detail
+- COMMENT → commentId for specific comment
+
+METADATA EXAMPLES:
+Follow user: { "actorUsername": "alice", "actorAvatar": "..." }
+Follow pet: { "actorUsername": "bob", "petName": "Coca", "petAvatar": "..." }
+Like post: { "actorUsername": "charlie", "postId": 123 }
+Comment post: { "actorUsername": "david", "commentId": 456, "commentPreview": "Cute!" }
+
+EXAMPLE RECORD:
+{
+  "id": 10,
+  "recipient_id": 5,
+  "actor_id": 12,
+  "type": "FOLLOW_PET",
+  "target_type": "PET",
+  "target_id": 33,
+  "metadata": {
+    "actorUsername": "alice",
+    "petName": "Coca",
+    "petAvatar": "https://..."
+  },
+  "is_read": false,
+  "created_at": "2026-01-05T15:20:00"
+}
+'''
 }

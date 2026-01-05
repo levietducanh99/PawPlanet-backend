@@ -1,6 +1,7 @@
 package com.pawpplanet.backend.post.entity;
 
 import jakarta.persistence.Embeddable;
+import java.util.Objects;
 
 @Embeddable
 public class LikeId {
@@ -20,4 +21,17 @@ public class LikeId {
 
     public Long getPostId() { return postId; }
     public void setPostId(Long postId) { this.postId = postId; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LikeId likeId = (LikeId) o;
+        return Objects.equals(userId, likeId.userId) && Objects.equals(postId, likeId.postId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userId, postId);
+    }
 }
