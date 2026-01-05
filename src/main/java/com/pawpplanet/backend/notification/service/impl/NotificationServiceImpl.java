@@ -14,10 +14,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void createNotification(Long targetUserId, String type, Long postId) {
-        NotificationEntity notification = new NotificationEntity();
-        notification.setUserId(targetUserId);
-        notification.setType(type);
-        notification.setReferenceId(postId);
+        // Updated to use V9 notification schema
+        // This is a basic implementation - you may want to add more details to metadata
+        NotificationEntity notification = NotificationEntity.builder()
+                .recipientId(targetUserId)
+                .type(type)
+                .targetType("POST")  // Assuming this is always POST for now
+                .targetId(postId)
+                .metadata("{}")  // Empty JSON for now - should be populated with actual data
+                .build();
 
         notificationRepository.save(notification);
     }
