@@ -35,5 +35,12 @@ public interface EncyclopediaMediaRepository extends JpaRepository<EncyclopediaM
     // Lấy tất cả media của entity
     List<EncyclopediaMediaEntity> findByEntityTypeAndEntityIdOrderByDisplayOrderAsc(
             String entityType, Long entityId);
+
+    // Get max display order for gallery items (used when adding new media)
+    @Query("SELECT COALESCE(MAX(m.displayOrder), 0) FROM EncyclopediaMediaEntity m WHERE m.entityType = :entityType AND m.entityId = :entityId AND m.role = :role")
+    Optional<Integer> findMaxDisplayOrderByEntityTypeAndEntityIdAndRole(
+            @Param("entityType") String entityType,
+            @Param("entityId") Long entityId,
+            @Param("role") String role);
 }
 
