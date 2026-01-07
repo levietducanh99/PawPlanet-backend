@@ -2,6 +2,7 @@ package com.pawpplanet.backend.user.service.impl;
 
 import com.pawpplanet.backend.common.exception.AppException;
 import com.pawpplanet.backend.common.exception.ErrorCode;
+import com.pawpplanet.backend.notification.helper.NotificationHelper;
 import com.pawpplanet.backend.user.dto.UserResponse;
 import com.pawpplanet.backend.user.entity.FollowUser;
 import com.pawpplanet.backend.user.entity.FollowUserId;
@@ -24,6 +25,7 @@ public class FollowServiceImpl implements FollowService {
 
     private final UserRepository userRepository;
     private final FollowUserRepository followUserRepository;
+    private final NotificationHelper notificationHelper;
 
     @Override
     public void follow(Long targetUserId) {
@@ -51,6 +53,9 @@ public class FollowServiceImpl implements FollowService {
         rel.setCreatedAt(LocalDateTime.now());
 
         followUserRepository.save(rel);
+
+        // Send notification to the user being followed
+        notificationHelper.notifyFollowUser(targetUserId, currentUser);
     }
 
     @Override

@@ -15,17 +15,6 @@ public class SecurityHelper {
 
     private final UserRepository userRepository;
 
-    public Long getCurrentUserIdOrNull() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) return null;
-
-        String email = auth.getName();
-        if (email == null || "anonymousUser".equals(email)) return null;
-
-        return userRepository.findByEmail(email)
-                .map(UserEntity::getId)
-                .orElse(null);
-    }
 
     /**
      * Get current authenticated user

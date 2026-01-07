@@ -1,19 +1,18 @@
 package com.pawpplanet.backend.auth.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import javax.crypto.spec.SecretKeySpec;
 
 @Configuration
 @EnableWebSecurity
@@ -42,10 +41,9 @@ public class SecurityConfig {
             "/api/v1/auth/**"
     };
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, CustomJwtDecoder customJwtDecoder) throws Exception {
-        // Enable CORS using the CorsConfigurationSource bean defined below
-        http.cors();
         http.csrf(AbstractHttpConfigurer::disable);
 
         http.authorizeHttpRequests(request ->
@@ -67,8 +65,11 @@ public class SecurityConfig {
                         // Health check & Actuator
                         .requestMatchers("/health", "/api/v1/health", "/actuator/**").permitAll()
 
-                        // Auth endpoints - permit ALL methods (GET, POST, etc.)
-                        .requestMatchers(AUTH_ENDPOINTS).permitAll()
+                        // Auth endpoints - login, register, etc.
+                        .requestMatchers(HttpMethod.POST, AUTH_ENDPOINTS).permitAll()
+                        .requestMatchers(HttpMethod.GET, AUTH_ENDPOINTS).permitAll()
+
+
 
                         // Public GET endpoints - read-only access
                         .requestMatchers(HttpMethod.GET,
@@ -79,26 +80,11 @@ public class SecurityConfig {
 
         http.
                 oauth2ResourceServer(
-                oauth2
-                        -> oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(customJwtDecoder)));
+                        oauth2
+                                -> oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(customJwtDecoder)));
 
         return http.build();
     }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        // Temporarily allow all origins. Using allowedOriginPatterns("*") so credentials
-        // can be supported while echoing the request Origin header.
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(Arrays.asList("*"));
-        config.setAllowCredentials(true);
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("*"));
-        config.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
 
 }
