@@ -173,6 +173,7 @@ public class AuthService {
                 .jwtID(UUID.randomUUID().toString())
                 .claim("type", type)
                 .claim("scope", user.getRole())
+                .claim("userId", user.getId())  // Thêm userId vào token
                 .expirationTime(new Date(
                         Instant.now().plus(TOKEN_VALID_MS, ChronoUnit.MILLIS).toEpochMilli()
                 ))
