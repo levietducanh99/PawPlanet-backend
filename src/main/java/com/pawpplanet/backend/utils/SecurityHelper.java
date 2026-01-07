@@ -35,6 +35,30 @@ public class SecurityHelper {
     }
 
     /**
+     * Get current authenticated user ID or null if not authenticated
+     * Used for optional authentication scenarios (e.g., public endpoints that enhance with user data)
+     */
+    public Long getCurrentUserIdOrNull() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                return null;
+            }
+
+            String email = auth.getName();
+            if (email == null || "anonymousUser".equals(email)) {
+                return null;
+            }
+
+            return userRepository.findByEmail(email)
+                    .map(UserEntity::getId)
+                    .orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Check if current user is admin
      */
     public boolean isAdmin() {

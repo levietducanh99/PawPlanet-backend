@@ -110,8 +110,9 @@ public class PostServiceImpl implements PostService {
 
         List<PostEntity> posts = postRepository.findByAuthorIdOrderByCreatedAtDesc(userId);
 
-        // Use getCurrentUserOrNull to get the viewer (who is viewing, not the author)
-        UserEntity viewer = getCurrentUserOrNull();
+        // Use getCurrentUserIdOrNull to get the viewer ID (who is viewing, not the author)
+        Long viewerId = securityHelper.getCurrentUserIdOrNull();
+        UserEntity viewer = viewerId != null ? userRepository.findById(viewerId).orElse(null) : null;
 
         return posts.stream()
                 .map(post -> buildPostResponse(post, viewer))
