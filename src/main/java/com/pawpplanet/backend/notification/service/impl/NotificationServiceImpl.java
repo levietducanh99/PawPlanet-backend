@@ -1,17 +1,18 @@
 package com.pawpplanet.backend.notification.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pawpplanet.backend.common.dto.PagedResult;
 import com.pawpplanet.backend.common.exception.AppException;
 import com.pawpplanet.backend.common.exception.ErrorCode;
-import com.pawpplanet.backend.notification.dto.CreateNotificationRequest;
 import com.pawpplanet.backend.notification.dto.NotificationResponse;
 import com.pawpplanet.backend.notification.entity.NotificationEntity;
 import com.pawpplanet.backend.notification.enums.NotificationType;
 import com.pawpplanet.backend.notification.enums.TargetType;
 import com.pawpplanet.backend.notification.repository.NotificationRepository;
 import com.pawpplanet.backend.notification.service.NotificationService;
+import com.pawpplanet.backend.user.entity.UserEntity;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import com.pawpplanet.backend.utils.SecurityHelper;
 import lombok.RequiredArgsConstructor;
@@ -22,49 +23,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SecurityHelper securityHelper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Override
-    @Deprecated
-    public void createNotification(Long targetUserId, String type, Long postId) {
-        // Backward compatibility
-        createNotification(
-                targetUserId,
-                null,
-                NotificationType.valueOf(type),
-                TargetType.POST,
-                postId,
-                new HashMap<>()
-        );
-    }
-
-    @Override
-    @Transactional
-    public void createNotification(CreateNotificationRequest request) {
-        createNotification(
-                request.getRecipientId(),
-                request.getActorId(),
-                request.getType(),
-                request.getTargetType(),
-                request.getTargetId(),
-                request.getMetadata()
-        );
-    }
-
-    @Override
-    @Transactional
     public void createNotification(
             Long recipientId,
             Long actorId,
@@ -73,116 +47,104 @@ public class NotificationServiceImpl implements NotificationService {
             Long targetId,
             Map<String, Object> metadata
     ) {
-        // Don't create notification if actor = recipient
-        if (actorId != null && actorId.equals(recipientId)) {
-            log.debug("Skipping self-notification for user {}", recipientId);
-            return;
-        }
-
-        // Verify recipient exists
-        if (!userRepository.existsById(recipientId)) {
-            log.error("Cannot create notification: recipient {} not found", recipientId);
-            return;
-        }
-
-        // Enrich metadata with actor info
-        Map<String, Object> enrichedMetadata = new HashMap<>();
-        if (metadata != null) {
-            enrichedMetadata.putAll(metadata);
-        }
-
-        if (actorId != null) {
-            userRepository.findById(actorId).ifPresent(actor -> {
-                enrichedMetadata.put("actorUsername", actor.getUsername());
-                enrichedMetadata.put("actorAvatar", actor.getAvatarUrl());
-            });
-        }
-
-        // Convert metadata to JSON
-        String metadataJson;
         try {
-            metadataJson = objectMapper.writeValueAsString(enrichedMetadata);
+            // Convert metadata Map to JSON string for JSONB storage
+            String metadataJson = metadata != null && !metadata.isEmpty()
+                    ? objectMapper.writeValueAsString(metadata)
+                    : "{}";
+
+            NotificationEntity notification = NotificationEntity.builder()
+                    .recipientId(recipientId)
+                    .actorId(actorId)
+                    .type(type.name())  // Convert enum to string
+                    .targetType(targetType.name())  // Convert enum to string
+                    .targetId(targetId)
+                    .metadata(metadataJson)
+                    .build();
+
+            notificationRepository.save(notification);
+            log.info("Created notification: type={}, recipient={}, actor={}", type, recipientId, actorId);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize metadata", e);
-            metadataJson = "{}";
+            log.error("Failed to serialize notification metadata", e);
+            throw new RuntimeException("Failed to create notification", e);
         }
-
-        // Create notification
-        NotificationEntity notification = NotificationEntity.builder()
-                .recipientId(recipientId)
-                .actorId(actorId)
-                .type(type.name())
-                .targetType(targetType.name())
-                .targetId(targetId)
-                .metadata(metadataJson)
-                .isRead(false)
-                .build();
-
-        notificationRepository.save(notification);
-        log.info("Created notification: type={}, recipient={}, actor={}", type, recipientId, actorId);
     }
 
     @Override
     public PagedResult<NotificationResponse> getMyNotifications(int page, int size) {
-        Long currentUserId = securityHelper.getCurrentUser().getId();
-
-        int zeroBasedPage = Math.max(0, page - 1);
-        Pageable pageable = PageRequest.of(zeroBasedPage, Math.max(1, size));
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        Pageable pageable = PageRequest.of(page - 1, size);
 
         Page<NotificationEntity> notificationPage = notificationRepository
-                .findByRecipientIdOrderByCreatedAtDesc(currentUserId, pageable);
+                .findByRecipientIdOrderByCreatedAtDesc(currentUser.getId(), pageable);
 
-        return mapToPagedResult(notificationPage);
+        List<NotificationResponse> items = notificationPage.getContent().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        PagedResult<NotificationResponse> result = new PagedResult<>();
+        result.setItems(items);
+        result.setTotalElements(notificationPage.getTotalElements());
+        result.setPage(page);
+        result.setSize(size);
+        return result;
     }
 
     @Override
     public PagedResult<NotificationResponse> getMyUnreadNotifications(int page, int size) {
-        Long currentUserId = securityHelper.getCurrentUser().getId();
-
-        int zeroBasedPage = Math.max(0, page - 1);
-        Pageable pageable = PageRequest.of(zeroBasedPage, Math.max(1, size));
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        Pageable pageable = PageRequest.of(page - 1, size);
 
         Page<NotificationEntity> notificationPage = notificationRepository
-                .findByRecipientIdAndIsReadFalseOrderByCreatedAtDesc(currentUserId, pageable);
+                .findByRecipientIdAndIsReadFalseOrderByCreatedAtDesc(currentUser.getId(), pageable);
 
-        return mapToPagedResult(notificationPage);
+        List<NotificationResponse> items = notificationPage.getContent().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        PagedResult<NotificationResponse> result = new PagedResult<>();
+        result.setItems(items);
+        result.setTotalElements(notificationPage.getTotalElements());
+        result.setPage(page);
+        result.setSize(size);
+        return result;
     }
 
     @Override
     public Long getUnreadCount() {
-        Long currentUserId = securityHelper.getCurrentUser().getId();
-        return notificationRepository.countByRecipientIdAndIsReadFalse(currentUserId);
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        return notificationRepository.countByRecipientIdAndIsReadFalse(currentUser.getId());
     }
 
     @Override
-    @Transactional
     public void markAsRead(Long notificationId) {
-        Long currentUserId = securityHelper.getCurrentUser().getId();
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        int updated = notificationRepository.markAsRead(notificationId, currentUser.getId());
 
-        int updated = notificationRepository.markAsRead(notificationId, currentUserId);
         if (updated == 0) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
     }
 
     @Override
-    @Transactional
     public void markAllAsRead() {
-        Long currentUserId = securityHelper.getCurrentUser().getId();
-        notificationRepository.markAllAsRead(currentUserId);
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        notificationRepository.markAllAsRead(currentUser.getId());
     }
 
     @Override
-    @Transactional
     public void deleteNotification(Long notificationId) {
-        Long currentUserId = securityHelper.getCurrentUser().getId();
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        int deleted = notificationRepository.deleteByIdAndRecipientId(notificationId, currentUser.getId());
 
-        int deleted = notificationRepository.deleteByIdAndRecipientId(notificationId, currentUserId);
         if (deleted == 0) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
     }
 
+    /**
+     * Map NotificationEntity to NotificationResponse DTO
+     */
     private NotificationResponse mapToResponse(NotificationEntity entity) {
         NotificationResponse response = new NotificationResponse();
         response.setId(entity.getId());
@@ -192,13 +154,14 @@ public class NotificationServiceImpl implements NotificationService {
 
         // Map actor info
         if (entity.getActorId() != null) {
-            userRepository.findById(entity.getActorId()).ifPresent(actor -> {
+            UserEntity actor = userRepository.findById(entity.getActorId()).orElse(null);
+            if (actor != null) {
                 NotificationResponse.ActorInfo actorInfo = new NotificationResponse.ActorInfo();
                 actorInfo.setId(actor.getId());
                 actorInfo.setUsername(actor.getUsername());
                 actorInfo.setAvatarUrl(actor.getAvatarUrl());
                 response.setActor(actorInfo);
-            });
+            }
         }
 
         // Map target info
@@ -207,27 +170,19 @@ public class NotificationServiceImpl implements NotificationService {
         targetInfo.setId(entity.getTargetId());
         response.setTarget(targetInfo);
 
-        // Parse metadata JSON
+        // Parse metadata from JSON string to Map
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> metadata = objectMapper.readValue(entity.getMetadata(), Map.class);
-            response.setMetadata(metadata);
-        } catch (Exception e) {
-            log.error("Failed to parse metadata for notification {}", entity.getId(), e);
-            response.setMetadata(new HashMap<>());
+            if (entity.getMetadata() != null && !entity.getMetadata().isEmpty()) {
+                Map<String, Object> metadata = objectMapper.readValue(
+                        entity.getMetadata(),
+                        new TypeReference<Map<String, Object>>() {}
+                );
+                response.setMetadata(metadata);
+            }
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse notification metadata", e);
         }
 
         return response;
-    }
-
-    private PagedResult<NotificationResponse> mapToPagedResult(Page<NotificationEntity> page) {
-        PagedResult<NotificationResponse> result = new PagedResult<>();
-        result.setItems(page.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList()));
-        result.setTotalElements(page.getTotalElements());
-        result.setPage(page.getNumber() + 1);
-        result.setSize(page.getSize());
-        return result;
     }
 }

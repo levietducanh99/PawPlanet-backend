@@ -1,8 +1,7 @@
 package com.pawpplanet.backend.post.service.impl;
 
-import com.pawpplanet.backend.notification.enums.NotificationType;
-import com.pawpplanet.backend.notification.enums.TargetType;
-import com.pawpplanet.backend.notification.service.NotificationService;
+import com.pawpplanet.backend.notification.helper.NotificationHelper;
+import com.pawpplanet.backend.post.dto.LikeDetailResponse;
 import com.pawpplanet.backend.post.dto.LikeRequest;
 import com.pawpplanet.backend.post.dto.LikeResponse;
 import com.pawpplanet.backend.post.entity.LikeEntity;
@@ -20,8 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,20 +29,18 @@ public class LikeServiceImpl implements LikeService {
 
     private final LikeRepository likeRepository;
     private final PostRepository postRepository;
-    private final NotificationService notificationService;
+    private final NotificationHelper notificationHelper;
     private final SecurityHelper securityHelper;
     private final UserRepository userRepository;
 
     @Override
     public LikeResponse toggleLike(LikeRequest request) {
 
-        Long userId = securityHelper.getCurrentUserIdOrNull();
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        Long userId = currentUser.getId();
 
         PostEntity post = postRepository.findById(request.getPostId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
 
         boolean exists = likeRepository.existsByPostIdAndUserId(post.getId(), userId);
 
@@ -61,26 +58,9 @@ public class LikeServiceImpl implements LikeService {
             ));
             liked = true;
 
-            // Send notification to post author
+            // Send notification to post author (if not self-like)
             if (!post.getAuthorId().equals(userId)) {
-                // Add post preview to metadata
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("postId", post.getId());
-                if (post.getContent() != null && !post.getContent().isEmpty()) {
-                    String preview = post.getContent().length() > 50
-                            ? post.getContent().substring(0, 50) + "..."
-                            : post.getContent();
-                    metadata.put("postPreview", preview);
-                }
-
-                notificationService.createNotification(
-                        post.getAuthorId(),      // recipient
-                        userId,                   // actor (current user who liked)
-                        NotificationType.LIKE_POST,
-                        TargetType.POST,
-                        post.getId(),
-                        metadata
-                );
+                notificationHelper.notifyLikePost(post.getAuthorId(), currentUser, post);
             }
         }
 
@@ -89,6 +69,24 @@ public class LikeServiceImpl implements LikeService {
                 liked,
                 likeRepository.countByPostId(post.getId())
         );
+    }
+
+    @Override
+    public List<LikeDetailResponse> getLikesByPostId(Long postId) {
+        List<LikeEntity> likes = likeRepository.findByPostId(postId);
+
+        return likes.stream()
+                .map(like -> {
+                    UserEntity user = userRepository.findById(like.getUserId())
+                            .orElseThrow(() -> new RuntimeException("User not found"));
+
+                    return new LikeDetailResponse(
+                            user.getId(),
+                            user.getUsername(),
+                            user.getAvatarUrl()
+                    );
+                })
+                .collect(Collectors.toList());
     }
 }
 

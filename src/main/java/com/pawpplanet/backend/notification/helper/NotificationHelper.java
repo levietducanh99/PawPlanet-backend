@@ -30,7 +30,8 @@ public class NotificationHelper {
      */
     public void notifyFollowUser(Long recipientId, UserEntity actor) {
         Map<String, Object> metadata = new HashMap<>();
-        // Actor info is auto-added by service
+        metadata.put("actorUsername", actor.getUsername());
+        metadata.put("actorAvatar", actor.getAvatarUrl());
 
         notificationService.createNotification(
                 recipientId,
@@ -49,9 +50,9 @@ public class NotificationHelper {
      */
     public void notifyFollowPet(Long recipientId, UserEntity actor, PetEntity pet) {
         Map<String, Object> metadata = new HashMap<>();
+        metadata.put("actorUsername", actor.getUsername());
+        metadata.put("actorAvatar", actor.getAvatarUrl());
         metadata.put("petName", pet.getName());
-        // Note: petAvatar should be fetched from pet_media table if needed
-        // For now, we'll skip it or the caller can add it manually
 
         notificationService.createNotification(
                 recipientId,
@@ -61,7 +62,6 @@ public class NotificationHelper {
                 pet.getId(),
                 metadata
         );
-
         log.info("Sent FOLLOW_PET notification to user {} for pet {}", recipientId, pet.getName());
     }
 
@@ -70,6 +70,8 @@ public class NotificationHelper {
      */
     public void notifyLikePost(Long recipientId, UserEntity actor, PostEntity post) {
         Map<String, Object> metadata = new HashMap<>();
+        metadata.put("actorUsername", actor.getUsername());
+        metadata.put("actorAvatar", actor.getAvatarUrl());
         metadata.put("postId", post.getId());
 
         // Add post preview if content exists
@@ -88,7 +90,6 @@ public class NotificationHelper {
                 post.getId(),
                 metadata
         );
-
         log.info("Sent LIKE_POST notification to user {} from {}", recipientId, actor.getUsername());
     }
 
@@ -97,6 +98,8 @@ public class NotificationHelper {
      */
     public void notifyCommentPost(Long recipientId, UserEntity actor, CommentEntity comment, PostEntity post) {
         Map<String, Object> metadata = new HashMap<>();
+        metadata.put("actorUsername", actor.getUsername());
+        metadata.put("actorAvatar", actor.getAvatarUrl());
         metadata.put("commentId", comment.getId());
         metadata.put("postId", post.getId());
 
@@ -116,14 +119,13 @@ public class NotificationHelper {
                 comment.getId(),
                 metadata
         );
-
         log.info("Sent COMMENT_POST notification to user {} from {}", recipientId, actor.getUsername());
     }
 
     /**
-     * System notification (no actor)
+     * System notification (e.g., account verification, admin messages)
      */
-    public void notifySystem(Long recipientId, String message, TargetType targetType, Long targetId) {
+    public void notifySystem(Long recipientId, String message) {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("systemMessage", message);
 
@@ -131,12 +133,11 @@ public class NotificationHelper {
                 recipientId,
                 null,  // No actor for system notifications
                 NotificationType.SYSTEM,
-                targetType,
-                targetId,
+                TargetType.USER,
+                recipientId,
                 metadata
         );
-
-        log.info("Sent SYSTEM notification to user {}: {}", recipientId, message);
+        log.info("Sent SYSTEM notification to user {}", recipientId);
     }
 }
 

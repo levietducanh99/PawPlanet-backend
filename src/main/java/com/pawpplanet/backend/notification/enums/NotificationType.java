@@ -10,3 +10,4 @@ public enum NotificationType {
     COMMENT_POST,   // Someone commented on your post
     SYSTEM          // System notification
 }
+

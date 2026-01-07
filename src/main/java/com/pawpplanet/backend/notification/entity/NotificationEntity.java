@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -38,7 +37,7 @@ public class NotificationEntity {
     private Long targetId;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column(name = "metadata", columnDefinition = "jsonb")
     private String metadata;
 
     @Column(name = "is_read")

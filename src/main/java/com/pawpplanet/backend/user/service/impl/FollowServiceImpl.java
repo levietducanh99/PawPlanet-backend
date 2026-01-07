@@ -54,7 +54,7 @@ public class FollowServiceImpl implements FollowService {
 
         followUserRepository.save(rel);
 
-        // 🔔 Send notification to target user
+        // Send notification to the user being followed
         notificationHelper.notifyFollowUser(targetUserId, currentUser);
     }
 

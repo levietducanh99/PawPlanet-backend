@@ -1,7 +1,7 @@
 package com.pawpplanet.backend.notification.enums;
 
 /**
- * Target type for navigation - tells frontend where to navigate
+ * Target types for navigation - tells FE where to navigate when clicking notification
  */
 public enum TargetType {
     USER,       // Navigate to user profile

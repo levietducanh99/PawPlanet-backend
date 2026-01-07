@@ -33,7 +33,10 @@ public class PostController {
     ) {
         return ResponseEntity.ok(postService.updatePost(id, request));
     }
-
+    @GetMapping("/{id}")
+    public ResponseEntity<PostResponse> getPostById(@PathVariable Long id) {
+        return ResponseEntity.ok(postService.getPostById(id));
+    }
 
     @GetMapping
     public ResponseEntity<List<PostResponse>> getMyPosts() {
@@ -52,5 +55,10 @@ public class PostController {
             @PathVariable Long petId
     ) {
         return ResponseEntity.ok(postService.getPostsByPetId(petId));
+    }
+
+    @GetMapping("/feed")
+    public ResponseEntity<List<PostResponse>> getNewsFeed() {
+        return ResponseEntity.ok(postService.getNewsFeed());
     }
 }

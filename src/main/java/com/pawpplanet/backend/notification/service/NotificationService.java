@@ -1,7 +1,6 @@
 package com.pawpplanet.backend.notification.service;
 
 import com.pawpplanet.backend.common.dto.PagedResult;
-import com.pawpplanet.backend.notification.dto.CreateNotificationRequest;
 import com.pawpplanet.backend.notification.dto.NotificationResponse;
 import com.pawpplanet.backend.notification.enums.NotificationType;
 import com.pawpplanet.backend.notification.enums.TargetType;
@@ -9,20 +8,8 @@ import com.pawpplanet.backend.notification.enums.TargetType;
 import java.util.Map;
 
 public interface NotificationService {
-
     /**
-     * Create notification (simple method for backward compatibility)
-     */
-    @Deprecated
-    void createNotification(Long targetUserId, String type, Long postId);
-
-    /**
-     * Create notification with full parameters
-     */
-    void createNotification(CreateNotificationRequest request);
-
-    /**
-     * Helper method to create notification with common parameters
+     * Create a notification with full details
      */
     void createNotification(
             Long recipientId,
@@ -34,7 +21,7 @@ public interface NotificationService {
     );
 
     /**
-     * Get notifications for current user (paginated)
+     * Get all notifications for current user (paginated)
      */
     PagedResult<NotificationResponse> getMyNotifications(int page, int size);
 
@@ -44,22 +31,22 @@ public interface NotificationService {
     PagedResult<NotificationResponse> getMyUnreadNotifications(int page, int size);
 
     /**
-     * Get unread count for current user
+     * Get count of unread notifications for current user
      */
     Long getUnreadCount();
 
     /**
-     * Mark notification as read
+     * Mark a notification as read
      */
     void markAsRead(Long notificationId);
 
     /**
-     * Mark all notifications as read
+     * Mark all notifications as read for current user
      */
     void markAllAsRead();
 
     /**
-     * Delete notification
+     * Delete a notification
      */
     void deleteNotification(Long notificationId);
 }
