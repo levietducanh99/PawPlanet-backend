@@ -1,6 +1,6 @@
 package com.pawpplanet.backend.post.service.impl;
 
-import com.pawpplanet.backend.notification.service.NotificationService;
+import com.pawpplanet.backend.notification.helper.NotificationHelper;
 import com.pawpplanet.backend.post.dto.LikeDetailResponse;
 import com.pawpplanet.backend.post.dto.LikeRequest;
 import com.pawpplanet.backend.post.dto.LikeResponse;
@@ -11,7 +11,6 @@ import com.pawpplanet.backend.post.repository.PostRepository;
 import com.pawpplanet.backend.post.service.LikeService;
 import com.pawpplanet.backend.user.entity.UserEntity;
 import com.pawpplanet.backend.user.repository.UserRepository;
-import com.pawpplanet.backend.user.service.UserService;
 import com.pawpplanet.backend.utils.SecurityHelper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,20 +29,18 @@ public class LikeServiceImpl implements LikeService {
 
     private final LikeRepository likeRepository;
     private final PostRepository postRepository;
-    private final NotificationService notificationService;
+    private final NotificationHelper notificationHelper;
     private final SecurityHelper securityHelper;
     private final UserRepository userRepository;
 
     @Override
     public LikeResponse toggleLike(LikeRequest request) {
 
-        Long userId = securityHelper.getCurrentUser().getId();
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        Long userId = currentUser.getId();
 
         PostEntity post = postRepository.findById(request.getPostId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
 
         boolean exists = likeRepository.existsByPostIdAndUserId(post.getId(), userId);
 
@@ -62,10 +58,9 @@ public class LikeServiceImpl implements LikeService {
             ));
             liked = true;
 
+            // Send notification to post author (if not self-like)
             if (!post.getAuthorId().equals(userId)) {
-                notificationService.createNotification(
-                        post.getAuthorId(), "LIKE", post.getId()
-                );
+                notificationHelper.notifyLikePost(post.getAuthorId(), currentUser, post);
             }
         }
 
@@ -76,7 +71,6 @@ public class LikeServiceImpl implements LikeService {
         );
     }
 
-    // Bổ sung method vào LikeServiceImpl
     @Override
     public List<LikeDetailResponse> getLikesByPostId(Long postId) {
         List<LikeEntity> likes = likeRepository.findByPostId(postId);
@@ -94,9 +88,6 @@ public class LikeServiceImpl implements LikeService {
                 })
                 .collect(Collectors.toList());
     }
-
-
-
 }
 
 

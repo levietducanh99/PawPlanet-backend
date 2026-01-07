@@ -1,6 +1,6 @@
 package com.pawpplanet.backend.post.service.impl;
 
-import com.pawpplanet.backend.notification.service.NotificationService;
+import com.pawpplanet.backend.notification.helper.NotificationHelper;
 import com.pawpplanet.backend.post.dto.CommentDetailResponse;
 import com.pawpplanet.backend.post.dto.CommentRequest;
 import com.pawpplanet.backend.post.dto.CommentResponse;
@@ -28,17 +28,15 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
-    private final NotificationService notificationService;
+    private final NotificationHelper notificationHelper;
     private final SecurityHelper securityHelper;
     private final UserRepository userRepository;
 
     @Override
     public CommentResponse createComment(CommentRequest request) {
 
-        Long userId = securityHelper.getCurrentUser().getId();
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
-        }
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        Long userId = currentUser.getId();
 
         PostEntity post = postRepository.findById(request.getPostId())
                 .orElseThrow(() ->
@@ -53,13 +51,9 @@ public class CommentServiceImpl implements CommentService {
 
         commentRepository.save(comment);
 
-        // tạo notification nếu không phải chủ bài viết
+        // Send notification to post author (if not commenting on own post)
         if (!post.getAuthorId().equals(userId)) {
-            notificationService.createNotification(
-                    post.getAuthorId(),
-                    "COMMENT",
-                    post.getId()
-            );
+            notificationHelper.notifyCommentPost(post.getAuthorId(), currentUser, comment, post);
         }
 
         return mapToResponse(comment);
