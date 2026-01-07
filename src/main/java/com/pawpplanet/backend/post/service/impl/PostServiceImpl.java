@@ -110,8 +110,11 @@ public class PostServiceImpl implements PostService {
 
         List<PostEntity> posts = postRepository.findByAuthorIdOrderByCreatedAtDesc(userId);
 
+        // Use getCurrentUserOrNull to get the viewer (who is viewing, not the author)
+        UserEntity viewer = getCurrentUserOrNull();
+
         return posts.stream()
-                .map(post -> buildPostResponse(post, author))
+                .map(post -> buildPostResponse(post, viewer))
                 .toList();
     }
 
@@ -169,6 +172,10 @@ public class PostServiceImpl implements PostService {
     // ================= BUILD RESPONSE =================
     private PostResponse buildPostResponse(PostEntity post, UserEntity viewer) {
 
+        if (post.getAuthorId() == null) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Post không có author");
+        }
+
         UserEntity author = userRepository.findById(post.getAuthorId())
                 .orElseThrow(() ->
                         new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tác giả"));
@@ -198,8 +205,10 @@ public class PostServiceImpl implements PostService {
                             .ifPresent(b -> dto.setBreedName(b.getName()));
                 }
 
-                userRepository.findById(pet.getOwnerId())
-                        .ifPresent(u -> dto.setOwnerUsername(u.getUsername()));
+                if (pet.getOwnerId() != null) {
+                    userRepository.findById(pet.getOwnerId())
+                            .ifPresent(u -> dto.setOwnerUsername(u.getUsername()));
+                }
 
                 petMediaRepository.findByPetId(pet.getId()).stream()
                         .filter(m -> "avatar".equals(m.getRole()))
@@ -218,7 +227,7 @@ public class PostServiceImpl implements PostService {
                 commentRepository.countByPostIdAndDeletedAtIsNull(post.getId());
 
         boolean liked = false;
-        if (viewer != null) {
+        if (viewer != null && viewer.getId() != null) {
             liked = likeRepository.existsByPostIdAndUserId(
                     post.getId(),
                     viewer.getId()

@@ -7,9 +7,12 @@ import com.pawpplanet.backend.notification.enums.NotificationType;
 import com.pawpplanet.backend.notification.enums.TargetType;
 import com.pawpplanet.backend.notification.repository.NotificationRepository;
 import com.pawpplanet.backend.notification.service.NotificationService;
+import com.pawpplanet.backend.user.repository.UserRepository;
+import com.pawpplanet.backend.utils.SecurityHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 

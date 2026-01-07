@@ -41,6 +41,7 @@ public class NotificationHelper {
                 actor.getId(),
                 metadata
         );
+
         log.info("Sent FOLLOW_USER notification to user {} from {}", recipientId, actor.getUsername());
     }
 
