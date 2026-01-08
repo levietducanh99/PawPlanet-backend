@@ -12,7 +12,6 @@ import com.pawpplanet.backend.user.service.UserService;
 import com.pawpplanet.backend.utils.SecurityHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -115,7 +114,8 @@ public class UserServiceImpl implements UserService {
         );
 
         // Add computed fields for follow relationships
-        Long currentUserId = securityHelper.getCurrentUser().getId();
+        // Use token-or-null helper so public unauthenticated views don't throw
+        Long currentUserId = securityHelper.getCurrentUserIdFromTokenOrNull();
         if (currentUserId != null) {
             boolean isMe = currentUserId.equals(user.getId());
             dto.setIsMe(isMe);
@@ -133,6 +133,7 @@ public class UserServiceImpl implements UserService {
                 dto.setIsFollowing(isFollowing);
                 dto.setIsFollowedBy(isFollowedBy);
                 // canFollow should depend ONLY on whether this is the current user's profile
+                // noinspection ConstantConditions
                 dto.setCanFollow(!isMe);
             }
         } else {
