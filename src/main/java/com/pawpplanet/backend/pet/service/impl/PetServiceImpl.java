@@ -3,12 +3,7 @@ package com.pawpplanet.backend.pet.service.impl;
 import com.pawpplanet.backend.encyclopedia.repository.BreedRepository;
 import com.pawpplanet.backend.encyclopedia.repository.SpeciesRepository;
 import com.pawpplanet.backend.media.service.CloudinaryUrlBuilder;
-import com.pawpplanet.backend.pet.dto.AddPetMediaRequest;
-import com.pawpplanet.backend.pet.dto.AddPetMediaResponse;
-import com.pawpplanet.backend.pet.dto.CreatePetRequestDTO;
-import com.pawpplanet.backend.pet.dto.PetMediaDTO;
-import com.pawpplanet.backend.pet.dto.PetProfileDTO;
-import com.pawpplanet.backend.pet.dto.UpdatePetRequestDTO;
+import com.pawpplanet.backend.pet.dto.*;
 import com.pawpplanet.backend.pet.entity.PetEntity;
 import com.pawpplanet.backend.pet.entity.PetMediaEntity;
 import com.pawpplanet.backend.pet.mapper.PetMapper;
@@ -17,6 +12,8 @@ import com.pawpplanet.backend.pet.repository.PetRepository;
 import com.pawpplanet.backend.pet.service.FollowPetService;
 import com.pawpplanet.backend.pet.service.PetService;
 import com.pawpplanet.backend.user.repository.UserRepository;
+import com.pawpplanet.backend.utils.SecurityHelper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +26,7 @@ import java.util.List;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class PetServiceImpl implements PetService {
 
     private final PetRepository petRepository;
@@ -38,22 +36,7 @@ public class PetServiceImpl implements PetService {
     private final PetMediaRepository petMediaRepository;
     private final FollowPetService followPetService;
     private final CloudinaryUrlBuilder cloudinaryUrlBuilder;
-
-    public PetServiceImpl(PetRepository petRepository,
-                          UserRepository userRepository,
-                          SpeciesRepository speciesRepository,
-                          BreedRepository breedRepository,
-                          PetMediaRepository petMediaRepository,
-                          FollowPetService followPetService,
-                          CloudinaryUrlBuilder cloudinaryUrlBuilder) {
-        this.petRepository = petRepository;
-        this.userRepository = userRepository;
-        this.speciesRepository = speciesRepository;
-        this.breedRepository = breedRepository;
-        this.petMediaRepository = petMediaRepository;
-        this.followPetService = followPetService;
-        this.cloudinaryUrlBuilder = cloudinaryUrlBuilder;
-    }
+    private final SecurityHelper securityHelper;
 
     @Override
     public PetProfileDTO createPet(CreatePetRequestDTO request) {
@@ -98,6 +81,7 @@ public class PetServiceImpl implements PetService {
                     "image"
             );
 
+
             PetMediaEntity media = new PetMediaEntity();
             media.setPetId(pet.getId());
             media.setType("image");
@@ -131,7 +115,7 @@ public class PetServiceImpl implements PetService {
                 .orElseThrow(() -> new RuntimeException("Pet not found"));
 
         // Privacy check: if status is "private", only owner can view
-        Long currentUserId = getCurrentUserIdOrNull();
+        Long currentUserId = securityHelper.getCurrentUserId();
         if ("private".equalsIgnoreCase(pet.getStatus())) {
             if (currentUserId == null || !currentUserId.equals(pet.getOwnerId())) {
                 throw new ResponseStatusException(
@@ -330,6 +314,33 @@ public class PetServiceImpl implements PetService {
                 .build();
     }
 
+    @Override
+    public List<AllPetsResponseDTO> getAllMyPets() {
+        // 1️⃣ Get current user
+        Long currentUserId = securityHelper.getCurrentUserId();
+
+        // 2️⃣ Fetch all pets owned by current user
+        List<PetEntity> pets = petRepository.findByOwnerId(currentUserId);
+
+        // 3️⃣ Convert to DTOs with enriched data
+        return pets.stream()
+                .map(pet -> {
+                    List<PetMediaEntity> media = petMediaRepository.findByPetId(pet.getId());
+                    AllPetsResponseDTO dto = new AllPetsResponseDTO();
+                    dto.setId(pet.getId());
+                    dto.setName(pet.getName());
+                    dto.setAvatar(getAvatarFromMedia(media)); // Extract avatar URL
+                    if (pet.getSpeciesId() != null) {
+                        speciesRepository.findById(pet.getSpeciesId())
+                                .ifPresent(s -> dto.setSpeciesName(s.getName()));
+                    }
+                    return dto;
+                })
+                .toList();
+
+    }
+
+
 
     // HÀM MỚI THÊM VÀO
     private PetProfileDTO enrichPetDTO(PetProfileDTO dto, PetEntity pet) {
@@ -347,7 +358,7 @@ public class PetServiceImpl implements PetService {
         }
         
         // Computed fields
-        Long currentUserId = getCurrentUserIdOrNull();
+        Long currentUserId = securityHelper.getCurrentUserId();
         if (currentUserId != null) {
             // isOwner
             dto.setOwner(currentUserId.equals(pet.getOwnerId()));
@@ -370,26 +381,34 @@ public class PetServiceImpl implements PetService {
         
         return dto;
     }
-    
-    private Long getCurrentUserIdOrNull() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return null;
-            }
-            
-            String email = authentication.getName();
-            if (email == null || "anonymousUser".equals(email)) {
-                return null;
-            }
-            
-            return userRepository.findByEmail(email)
-                    .map(u -> u.getId())
-                    .orElse(null);
-        } catch (Exception e) {
-            return null;
-        }
+
+    private String getAvatarFromMedia(List<PetMediaEntity> media) {
+        return media.stream()
+                .filter(m -> "avatar".equals(m.getRole()))
+                .findFirst()
+                .map(PetMediaEntity::getUrl)
+                .orElse(null);
     }
+//
+//    private Long getCurrentUserIdOrNull() {
+//        try {
+//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//            if (authentication == null || !authentication.isAuthenticated()) {
+//                return null;
+//            }
+//
+//            String email = authentication.getName();
+//            if (email == null || "anonymousUser".equals(email)) {
+//                return null;
+//            }
+//
+//            return userRepository.findByEmail(email)
+//                    .map(u -> u.getId())
+//                    .orElse(null);
+//        } catch (Exception e) {
+//            return null;
+//        }
+//    }
     
     private void validateSpeciesAndBreed(Long speciesId, Long breedId) {
         if (speciesId != null && !speciesRepository.existsById(speciesId)) {

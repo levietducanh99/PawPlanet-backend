@@ -1,20 +1,18 @@
 package com.pawpplanet.backend.pet.controller;
 
-import com.pawpplanet.backend.pet.dto.AddPetMediaRequest;
-import com.pawpplanet.backend.pet.dto.AddPetMediaResponse;
-import com.pawpplanet.backend.pet.dto.CreatePetRequestDTO;
-import com.pawpplanet.backend.pet.dto.PetProfileDTO;
-import com.pawpplanet.backend.pet.dto.UpdatePetRequestDTO;
+import com.pawpplanet.backend.pet.dto.*;
 import com.pawpplanet.backend.pet.service.PetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/pets")
 @RequiredArgsConstructor
-public class PetController {
+public class     PetController {
 
     private final PetService petService;
 
@@ -37,6 +35,12 @@ public class PetController {
             @RequestBody UpdatePetRequestDTO request
     ) {
         return ResponseEntity.ok(petService.updatePet(id, request));
+    }
+
+    @GetMapping("/my-pets")
+    public ResponseEntity<List<AllPetsResponseDTO>> getAllMyPets() {
+        List<AllPetsResponseDTO> pets = petService.getAllMyPets();
+        return ResponseEntity.ok(pets);
     }
 
     /**
