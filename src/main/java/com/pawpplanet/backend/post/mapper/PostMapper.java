@@ -1,16 +1,22 @@
 package com.pawpplanet.backend.post.mapper;
 
+import com.pawpplanet.backend.media.service.CloudinaryUrlBuilder;
 import com.pawpplanet.backend.post.dto.PostResponse;
 import com.pawpplanet.backend.post.entity.PostEntity;
 import com.pawpplanet.backend.post.entity.PostMediaEntity;
-import com.pawpplanet.backend.post.entity.PostPetEntity;
 import com.pawpplanet.backend.user.entity.UserEntity;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
+@RequiredArgsConstructor
 public class PostMapper {
 
-    public static PostResponse toResponse(
+    private final CloudinaryUrlBuilder urlBuilder;
+
+    public PostResponse toResponse(
             PostEntity post,
             UserEntity author,
             List<PostMediaEntity> media,
@@ -39,7 +45,13 @@ public class PostMapper {
                         PostResponse.PostMediaDTO dto =
                                 new PostResponse.PostMediaDTO();
                         dto.setId(m.getId());
-                        dto.setUrl(m.getUrl());
+
+                        // Build URL from publicId if available, otherwise use stored URL
+                        String url = m.getPublicId() != null
+                            ? urlBuilder.buildOptimizedUrl(m.getPublicId(), m.getType())
+                            : m.getUrl();
+                        dto.setUrl(url);
+
                         dto.setType(m.getType());
                         dto.setDisplayOrder(m.getDisplayOrder());
                         return dto;

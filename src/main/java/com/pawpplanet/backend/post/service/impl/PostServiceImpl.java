@@ -46,6 +46,7 @@ public class PostServiceImpl implements PostService {
     private final PetMediaRepository petMediaRepository;
     private final SecurityHelper securityHelper;
     private final FollowUserRepository followUserRepository;
+    private final PostMapper postMapper;
 
 
 
@@ -235,7 +236,7 @@ public class PostServiceImpl implements PostService {
             );
         }
 
-        return PostMapper.toResponse(
+        return postMapper.toResponse(
                 post,
                 author,
                 media,
@@ -260,7 +261,8 @@ public class PostServiceImpl implements PostService {
             PostMediaEntity postMedia = new PostMediaEntity();
             postMedia.setPostId(postId);
             postMedia.setType(mediaRequest.getType() != null ? mediaRequest.getType() : "image");
-            postMedia.setUrl(mediaRequest.getUrl());
+            postMedia.setPublicId(mediaRequest.getPublicId());  // Save public_id instead of URL
+            postMedia.setUrl(null);  // URL will be built dynamically from publicId
             postMedia.setDisplayOrder(i);
 
             postMediaList.add(postMedia);
