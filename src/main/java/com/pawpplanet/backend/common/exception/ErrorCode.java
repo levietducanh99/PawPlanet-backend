@@ -36,7 +36,7 @@ public enum ErrorCode {
     SPECIES_NOT_FOUND(404, "Species not found"),
     BREED_NOT_FOUND(404, "Breed not found"),
     ANIMAL_CLASS_NOT_FOUND(404, "Animal class not found"),
-    INVALID_MEDIA_ROLE(400, "Invalid media role. Must be 'hero', 'gallery', or 'thumbnail'"),
+    INVALID_MEDIA_ROLE(400, "Invalid media role. Must be 'hero', 'gallery', or 'avatar'"),
     INVALID_MEDIA_TYPE(400, "Invalid media type. Must be 'image' or 'video'")
     ;
     private int code;

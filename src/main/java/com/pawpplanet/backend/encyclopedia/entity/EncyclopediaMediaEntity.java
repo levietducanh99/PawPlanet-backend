@@ -24,7 +24,7 @@ public class EncyclopediaMediaEntity {
 
     private String type;        // image, video
 
-    private String role;        // hero, gallery, thumbnail
+    private String role;        // hero, gallery, avatar
 
     @Column(columnDefinition = "TEXT")
     private String url;

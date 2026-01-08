@@ -8,7 +8,7 @@ public class EncyclopediaMediaResponse {
     private String entityType;  // class, species, breed
     private Long entityId;
     private String type;        // image, video
-    private String role;        // hero, gallery, thumbnail
+    private String role;        // hero, gallery, avatar
     private String url;
     private Integer displayOrder;
 }

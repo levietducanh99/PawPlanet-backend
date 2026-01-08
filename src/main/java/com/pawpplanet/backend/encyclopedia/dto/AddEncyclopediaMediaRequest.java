@@ -23,7 +23,7 @@ public class AddEncyclopediaMediaRequest {
         private String url;
 
         @NotNull(message = "Role is required")
-        private String role; // "hero", "gallery", or "thumbnail"
+        private String role; // "hero", "gallery", or "avatar"
     }
 }
 

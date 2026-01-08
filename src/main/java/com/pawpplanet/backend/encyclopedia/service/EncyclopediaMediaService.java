@@ -160,7 +160,7 @@ public class EncyclopediaMediaService {
                 displayOrder++;
                 entity.setDisplayOrder(displayOrder);
             } else {
-                // For hero and thumbnail, use 0 or don't set display order
+                // For hero and avatar, use 0 or don't set display order
                 entity.setDisplayOrder(0);
             }
 
