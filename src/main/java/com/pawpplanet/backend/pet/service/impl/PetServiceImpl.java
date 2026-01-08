@@ -370,8 +370,8 @@ public class PetServiceImpl implements PetService {
                 dto.setFollowing(false);
             }
             
-            // canFollow = not owner AND not following
-            dto.setCanFollow(!dto.isOwner() && !dto.isFollowing());
+            // canFollow = not owner ONLY (do NOT consider following status)
+            dto.setCanFollow(!dto.isOwner());
         } else {
             // User not authenticated
             dto.setOwner(false);
