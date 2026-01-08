@@ -132,7 +132,8 @@ public class UserServiceImpl implements UserService {
 
                 dto.setIsFollowing(isFollowing);
                 dto.setIsFollowedBy(isFollowedBy);
-                dto.setCanFollow(!isFollowing);
+                // canFollow should depend ONLY on whether this is the current user's profile
+                dto.setCanFollow(!isMe);
             }
         } else {
             // Not authenticated
