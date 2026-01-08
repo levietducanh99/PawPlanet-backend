@@ -185,13 +185,14 @@ public class PetServiceImpl implements PetService {
 
         // 5️⃣ Update avatar nếu có publicId
         if (request.getAvatarPublicId() != null && !request.getAvatarPublicId().isBlank()) {
-            // Archive old avatar
-            petMediaRepository
-                    .findByPetIdAndDisplayOrder(petId, 1)
-                    .ifPresent(old -> {
-                        old.setDisplayOrder(0);
-                        petMediaRepository.save(old);
-                    });
+            // Archive old avatar(s) — handle unexpected duplicates safely
+            List<PetMediaEntity> existingAvatars = petMediaRepository.findByPetIdAndDisplayOrder(petId, 1);
+            if (!existingAvatars.isEmpty()) {
+                for (PetMediaEntity old : existingAvatars) {
+                    old.setDisplayOrder(0);
+                }
+                petMediaRepository.saveAll(existingAvatars);
+            }
 
             // Build URL and save
             String avatarUrl = cloudinaryUrlBuilder.buildOptimizedUrl(
@@ -419,3 +420,4 @@ public class PetServiceImpl implements PetService {
         }
     }
 }
+

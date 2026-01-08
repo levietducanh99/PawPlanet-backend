@@ -4,9 +4,9 @@ import com.pawpplanet.backend.pet.entity.PetMediaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface PetMediaRepository extends JpaRepository<PetMediaEntity, Long> {
-    Optional<PetMediaEntity> findByPetIdAndDisplayOrder(Long petId, Integer displayOrder);
+    // Return a list to safely handle unexpected duplicates in DB
+    List<PetMediaEntity> findByPetIdAndDisplayOrder(Long petId, Integer displayOrder);
     List<PetMediaEntity> findByPetId(Long petId);
 }
