@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -339,6 +340,44 @@ public class PetServiceImpl implements PetService {
                 })
                 .toList();
 
+    }
+
+    @Override
+    public void deletePet(Long petId) {
+        PetEntity pet = petRepository.findById(petId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Pet not found"
+                        )
+                );
+
+        Long currentUserId = securityHelper.getCurrentUserId();
+
+        if (!pet.getOwnerId().equals(currentUserId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not allowed to delete this pet"
+            );
+        }
+
+        // Soft delete the pet
+        pet.setIsDeleted(true);
+        pet.setDeletedAt(LocalDateTime.now());
+        pet.setDeletedBy(currentUserId);
+
+        petRepository.save(pet);
+
+        // Soft delete associated media (do NOT delete files from cloud storage)
+        List<PetMediaEntity> mediaList = petMediaRepository.findByPetId(petId);
+        for (PetMediaEntity media : mediaList) {
+            media.setIsDeleted(true);
+            media.setDeletedAt(LocalDateTime.now());
+            media.setDeletedBy(currentUserId);
+        }
+        if (!mediaList.isEmpty()) {
+            petMediaRepository.saveAll(mediaList);
+        }
     }
 
 

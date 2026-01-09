@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface CommentService {
     CommentResponse createComment(CommentRequest request);
+    void deleteComment(Long commentId);
     List<CommentDetailResponse> getCommentsByPostId(Long postId);
 }

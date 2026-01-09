@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Where;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Where(clause = "is_deleted = false")
 public class PostEntity {
 
     @Id
@@ -36,8 +39,14 @@ public class PostEntity {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private Long deletedBy;
 
     @PrePersist
     protected void onCreate() {

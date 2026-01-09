@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -68,6 +69,27 @@ public class CommentServiceImpl implements CommentService {
         res.setCreatedAt(entity.getCreatedAt());
         return res;
     }
+
+    @Override
+    public void deleteComment(Long commentId) {
+        UserEntity currentUser = securityHelper.getCurrentUser();
+
+        CommentEntity comment = commentRepository.findById(commentId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy comment")
+                );
+
+        if (!comment.getUserId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền xóa comment này");
+        }
+
+        comment.setIsDeleted(true);
+        comment.setDeletedAt(LocalDateTime.now());
+        comment.setDeletedBy(currentUser.getId());
+
+        commentRepository.save(comment);
+    }
+
     @Override
     public List<CommentDetailResponse> getCommentsByPostId(Long postId) {
 

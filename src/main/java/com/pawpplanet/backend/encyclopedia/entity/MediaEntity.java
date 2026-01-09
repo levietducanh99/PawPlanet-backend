@@ -4,12 +4,16 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Where;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "media", schema = "encyclopedia")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Where(clause = "is_deleted = false")
 public class MediaEntity {
 
     @Id
@@ -31,5 +35,14 @@ public class MediaEntity {
 
     @Column(name = "display_order")
     private Integer displayOrder;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private Long deletedBy;
 }
 

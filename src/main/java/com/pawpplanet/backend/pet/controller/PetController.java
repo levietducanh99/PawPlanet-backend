@@ -37,6 +37,13 @@ public class     PetController {
         return ResponseEntity.ok(petService.updatePet(id, request));
     }
 
+    // Xóa thú cưng (soft delete)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePet(@PathVariable Long id) {
+        petService.deletePet(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/my-pets")
     public ResponseEntity<List<AllPetsResponseDTO>> getAllMyPets() {
         List<AllPetsResponseDTO> pets = petService.getAllMyPets();

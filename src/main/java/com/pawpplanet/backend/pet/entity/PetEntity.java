@@ -4,14 +4,18 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Where;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pets", schema = "pet")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Where(clause = "is_deleted = false")
 public class PetEntity {
 
     @Id
@@ -42,4 +46,13 @@ public class PetEntity {
     private BigDecimal weight;
 
     private BigDecimal height;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private Long deletedBy;
 }

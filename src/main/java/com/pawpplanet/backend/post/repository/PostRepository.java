@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends JpaRepository<PostEntity, Long> {
 
-    @Query("SELECT p FROM PostEntity p JOIN PostPetEntity pp ON p.id = pp.postId WHERE pp.petId = :petId ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM PostEntity p JOIN PostPetEntity pp ON p.id = pp.postId WHERE pp.petId = :petId AND p.isDeleted = false ORDER BY p.createdAt DESC")
     List<PostEntity> findAllByPetId(@Param("petId") Long petId);
 
     List<PostEntity> findByAuthorIdOrderByCreatedAtDesc(Long authorId);

@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -100,6 +101,39 @@ public class PostServiceImpl implements PostService {
 
         return buildPostResponse(postRepository.save(post), user);
     }
+
+    // ================= DELETE =================
+    @Override
+    public void deletePost(Long postId) {
+        UserEntity user = securityHelper.getCurrentUser();
+
+        PostEntity post = postRepository.findById(postId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài viết"));
+
+        if (!post.getAuthorId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền xóa");
+        }
+
+        // Soft delete the post
+        post.setIsDeleted(true);
+        post.setDeletedAt(LocalDateTime.now());
+        post.setDeletedBy(user.getId());
+
+        postRepository.save(post);
+
+        // Soft delete associated media (do NOT delete files from cloud storage)
+        List<PostMediaEntity> mediaList = postMediaRepository.findByPostId(postId);
+        for (PostMediaEntity media : mediaList) {
+            media.setIsDeleted(true);
+            media.setDeletedAt(LocalDateTime.now());
+            media.setDeletedBy(user.getId());
+        }
+        if (!mediaList.isEmpty()) {
+            postMediaRepository.saveAll(mediaList);
+        }
+    }
+
     // ================= READ =================
 
     @Override
@@ -226,7 +260,7 @@ public class PostServiceImpl implements PostService {
                 likeRepository.countByPostId(post.getId());
 
         int commentCount =
-                commentRepository.countByPostIdAndDeletedAtIsNull(post.getId());
+                commentRepository.countByPostId(post.getId());
 
         boolean liked = false;
         if (viewer != null && viewer.getId() != null) {
