@@ -5,8 +5,10 @@ import com.pawpplanet.backend.common.exception.ErrorCode;
 import com.pawpplanet.backend.pet.dto.PetProfileDTO;
 import com.pawpplanet.backend.pet.entity.FollowPetEntity;
 import com.pawpplanet.backend.pet.entity.FollowPetId;
+import com.pawpplanet.backend.pet.entity.PetMediaEntity;
 import com.pawpplanet.backend.pet.mapper.PetMapper;
 import com.pawpplanet.backend.pet.repository.FollowPetRepository;
+import com.pawpplanet.backend.pet.repository.PetMediaRepository;
 import com.pawpplanet.backend.pet.repository.PetRepository;
 import com.pawpplanet.backend.pet.service.FollowPetService;
 import com.pawpplanet.backend.user.dto.UserResponse;
@@ -28,6 +30,7 @@ public class FollowPetServiceImpl implements FollowPetService {
     private final FollowPetRepository followPetRepository;
     private final PetRepository petRepository;
     private final UserRepository userRepository;
+    private final PetMediaRepository petMediaRepository;
 
     @Override
     public void followPet(Long petId) {
@@ -95,14 +98,20 @@ public class FollowPetServiceImpl implements FollowPetService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         List<FollowPetEntity> rels = followPetRepository.findByIdUserId(userId);
-        return rels.stream()
+        List<Long> petIds = rels.stream()
                 .map(r -> r.getId().getPetId())
-                .map(petRepository::findById)
-                .map(opt -> opt.orElse(null))
-                .filter(p -> p != null)
-                .map(PetMapper::toDto)
+                .toList();
+
+        return petRepository.findAllById(petIds).stream()
+                .map(pet -> {
+                    // 4. Lấy media cho từng pet (Cần petMediaRepository)
+                    List<PetMediaEntity> mediaList = petMediaRepository.findByPetId(pet.getId());
+                    return PetMapper.toProfileDTO(pet, mediaList);
+                })
                 .collect(Collectors.toList());
     }
+
+
 
     private UserResponse toUserResponse(UserEntity user) {
         UserResponse dto = new UserResponse();
