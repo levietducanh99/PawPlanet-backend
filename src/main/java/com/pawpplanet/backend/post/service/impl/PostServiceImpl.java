@@ -114,11 +114,23 @@ public class PostServiceImpl implements PostService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền xóa");
         }
 
+        // Soft delete the post
         post.setIsDeleted(true);
         post.setDeletedAt(java.time.LocalDateTime.now());
         post.setDeletedBy(user.getId());
 
         postRepository.save(post);
+
+        // Soft delete associated media (do NOT delete files from cloud storage)
+        List<PostMediaEntity> mediaList = postMediaRepository.findByPostId(postId);
+        for (PostMediaEntity media : mediaList) {
+            media.setIsDeleted(true);
+            media.setDeletedAt(java.time.LocalDateTime.now());
+            media.setDeletedBy(user.getId());
+        }
+        if (!mediaList.isEmpty()) {
+            postMediaRepository.saveAll(mediaList);
+        }
     }
 
     // ================= READ =================

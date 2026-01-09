@@ -360,11 +360,23 @@ public class PetServiceImpl implements PetService {
             );
         }
 
+        // Soft delete the pet
         pet.setIsDeleted(true);
         pet.setDeletedAt(java.time.LocalDateTime.now());
         pet.setDeletedBy(currentUserId);
 
         petRepository.save(pet);
+
+        // Soft delete associated media (do NOT delete files from cloud storage)
+        List<PetMediaEntity> mediaList = petMediaRepository.findByPetId(petId);
+        for (PetMediaEntity media : mediaList) {
+            media.setIsDeleted(true);
+            media.setDeletedAt(java.time.LocalDateTime.now());
+            media.setDeletedBy(currentUserId);
+        }
+        if (!mediaList.isEmpty()) {
+            petMediaRepository.saveAll(mediaList);
+        }
     }
 
 
