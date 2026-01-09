@@ -20,15 +20,19 @@ import com.pawpplanet.backend.user.repository.FollowUserRepository;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import com.pawpplanet.backend.utils.SecurityHelper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Transactional
@@ -205,6 +209,8 @@ public class PostServiceImpl implements PostService {
                 .toList();
     }
 
+
+
     // ================= BUILD RESPONSE =================
     private PostResponse buildPostResponse(PostEntity post, UserEntity viewer) {
 
@@ -280,6 +286,8 @@ public class PostServiceImpl implements PostService {
                 liked
         );
     }
+
+
 
 
 

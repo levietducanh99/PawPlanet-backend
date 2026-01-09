@@ -68,4 +68,6 @@ public class PostController {
     public ResponseEntity<List<PostResponse>> getNewsFeed() {
         return ResponseEntity.ok(postService.getNewsFeed());
     }
+
+
 }
