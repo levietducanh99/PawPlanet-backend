@@ -20,4 +20,9 @@ public interface LikeRepository extends JpaRepository<LikeEntity, LikeId> {
 
     @Query("SELECT l FROM LikeEntity l JOIN PostEntity p ON l.postId = p.id WHERE l.postId = :postId AND p.isDeleted = false")
     List<LikeEntity> findByPostId(@Param("postId") Long postId);
+
+    @Query("SELECT COUNT(l) FROM LikeEntity l " +
+            "JOIN PostPetEntity pp ON l.postId = pp.postId " +
+            "WHERE pp.petId = :petId")
+    int countLikesByPetId(@Param("petId") Long petId);
 }

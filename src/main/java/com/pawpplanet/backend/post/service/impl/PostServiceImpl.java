@@ -20,15 +20,19 @@ import com.pawpplanet.backend.user.repository.FollowUserRepository;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import com.pawpplanet.backend.utils.SecurityHelper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Transactional
@@ -205,6 +209,86 @@ public class PostServiceImpl implements PostService {
                 .toList();
     }
 
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PostResponse> getExploreFeed() {
+        UserEntity currentUser = securityHelper.getCurrentUser();
+        Long currentUserId = (currentUser != null) ? currentUser.getId() : -1L;
+
+        // 1. Lấy danh sách đang follow
+        List<Long> followingIds = (currentUser == null) ? new ArrayList<>()
+                : followUserRepository.findFollowingIdsByFollowerId(currentUserId);
+
+        // Tránh lỗi SQL NOT IN rỗng
+        List<Long> filterIds = new ArrayList<>(followingIds);
+        if (filterIds.isEmpty()) filterIds.add(-1L);
+
+        // 2. Lấy Pool ứng viên (Lấy 50 bài mới nhất mỗi loại để F5 ra bài khác nhau)
+        List<Long> followPool = postRepository.findRecentFollowedIds(filterIds, PageRequest.of(0, 50));
+        List<Long> explorePool = postRepository.findRecentExploreIds(filterIds, currentUserId, PageRequest.of(0, 50));
+
+        // 3. Chọn ngẫu nhiên 10 ID từ mỗi Pool
+        List<Long> selectedIds = new ArrayList<>();
+        selectedIds.addAll(pickRandom(followPool, 10));
+        selectedIds.addAll(pickRandom(explorePool, 10));
+
+        if (selectedIds.isEmpty()) return new ArrayList<>();
+
+        // 4. Lấy dữ liệu PostEntities
+        List<PostEntity> posts = postRepository.findAllByIdIn(selectedIds);
+
+        // --- BƯỚC QUAN TRỌNG: BATCH FETCHING (CHỐNG 40 GIÂY) ---
+        // Lấy tất cả Author ID có trong 20 bài post này
+        List<Long> authorIds = posts.stream().map(PostEntity::getAuthorId).distinct().toList();
+
+        // Query 1 lần lấy tất cả User
+        Map<Long, UserEntity> userMap = userRepository.findAllById(authorIds).stream()
+                .collect(Collectors.toMap(UserEntity::getId, u -> u));
+
+        // Query 1 lần lấy tất cả Media của 20 bài post
+        Map<Long, List<PostMediaEntity>> mediaMap = postMediaRepository.findByPostIdIn(selectedIds).stream()
+                .collect(Collectors.groupingBy(PostMediaEntity::getPostId));
+        // -----------------------------------------------------
+
+        // Trộn lẫn bài viết cho tự nhiên
+        Collections.shuffle(posts);
+
+        return posts.stream()
+                .map(post -> {
+                    UserEntity author = userMap.get(post.getAuthorId());
+                    List<PostMediaEntity> medias = mediaMap.getOrDefault(post.getId(), List.of());
+                    return buildPostResponse(post, author, medias, currentUser);
+                })
+                .toList();
+    }
+
+    // Hàm chọn ngẫu nhiên
+    private List<Long> pickRandom(List<Long> list, int n) {
+        if (list.size() <= n) return new ArrayList<>(list);
+        List<Long> copy = new ArrayList<>(list);
+        Collections.shuffle(copy);
+        return copy.subList(0, n);
+    }
+
+    // Hàm build response không được gọi Repository bên trong nữa
+    private PostResponse buildPostResponse(PostEntity post, UserEntity author,
+                                           List<PostMediaEntity> medias, UserEntity currentUser) {
+        PostResponse response = new PostResponse();
+        // Map dữ liệu từ post sang response ở đây
+        // Map thông tin từ author (ví dụ: name, avatar)
+        // Map danh sách medias
+        return response;
+    }
+
+
+
+
+
+
+
+
+
     // ================= BUILD RESPONSE =================
     private PostResponse buildPostResponse(PostEntity post, UserEntity viewer) {
 
@@ -280,6 +364,8 @@ public class PostServiceImpl implements PostService {
                 liked
         );
     }
+
+
 
 
 

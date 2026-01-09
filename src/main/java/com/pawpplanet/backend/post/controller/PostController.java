@@ -68,4 +68,10 @@ public class PostController {
     public ResponseEntity<List<PostResponse>> getNewsFeed() {
         return ResponseEntity.ok(postService.getNewsFeed());
     }
+
+
+    @GetMapping("explore")
+    public ResponseEntity<List<PostResponse>> getExploreFeed() {
+        return ResponseEntity.ok(postService.getExploreFeed());
+    }
 }
