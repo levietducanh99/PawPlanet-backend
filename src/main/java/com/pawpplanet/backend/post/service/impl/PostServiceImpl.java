@@ -5,6 +5,7 @@ import com.pawpplanet.backend.encyclopedia.repository.SpeciesRepository;
 import com.pawpplanet.backend.pet.entity.PetEntity;
 import com.pawpplanet.backend.pet.repository.PetMediaRepository;
 import com.pawpplanet.backend.pet.repository.PetRepository;
+import com.pawpplanet.backend.post.constant.PostType;
 import com.pawpplanet.backend.post.dto.CreatePostRequest;
 import com.pawpplanet.backend.post.dto.MediaUrlRequest;
 import com.pawpplanet.backend.post.dto.PostResponse;
@@ -207,6 +208,25 @@ public class PostServiceImpl implements PostService {
         return posts.stream()
                 .map(post -> buildPostResponse(post, currentUser))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PostResponse> getUrgentPosts() {
+        List<PostEntity> posts = postRepository.findByTypeOrderByCreatedAtDesc(PostType.URGENT);
+
+        Long viewerId = securityHelper.getCurrentUserIdOrNull();
+        UserEntity viewer = viewerId != null ? userRepository.findById(viewerId).orElse(null) : null;
+
+        return posts.stream()
+                .map(post -> buildPostResponse(post, viewer))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long countUrgentPosts() {
+        return postRepository.countByType(PostType.URGENT);
     }
 
 

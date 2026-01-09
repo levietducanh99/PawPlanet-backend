@@ -19,5 +19,9 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
 
     List<PostEntity> findByAuthorIdInOrderByCreatedAtDesc(List<Long> authorIds);
 
+    List<PostEntity> findByTypeOrderByCreatedAtDesc(String type);
+
+    Long countByType(String type);
+
 
 }

@@ -1377,6 +1377,54 @@
         }
       }
     },
+    "/api/v1/posts/urgent": {
+      "get": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "getUrgentPosts",
+        "summary": "Get all posts with type urgent",
+        "description": "Returns all posts that have type set to 'urgent', ordered by creation date descending",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/urgent/count": {
+      "get": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "countUrgentPosts",
+        "summary": "Count all posts with type urgent",
+        "description": "Returns the total count of posts that have type set to 'urgent'",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{id}/followers": {
       "get": {
         "tags": [

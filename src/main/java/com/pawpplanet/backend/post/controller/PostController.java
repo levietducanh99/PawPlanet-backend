@@ -69,5 +69,15 @@ public class PostController {
         return ResponseEntity.ok(postService.getNewsFeed());
     }
 
+    @GetMapping("/urgent")
+    public ResponseEntity<List<PostResponse>> getUrgentPosts() {
+        return ResponseEntity.ok(postService.getUrgentPosts());
+    }
+
+    @GetMapping("/urgent/count")
+    public ResponseEntity<Long> countUrgentPosts() {
+        return ResponseEntity.ok(postService.countUrgentPosts());
+    }
+
 
 }
