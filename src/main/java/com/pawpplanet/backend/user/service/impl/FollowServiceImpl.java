@@ -111,6 +111,7 @@ public class FollowServiceImpl implements FollowService {
 
     private UserResponse toUserResponse(UserEntity user) {
         UserResponse dto = new UserResponse();
+        dto.setId(user.getId());
         dto.setEmail(user.getEmail());
         dto.setUsername(user.getUsername());
         dto.setAvatarUrl(user.getAvatarUrl());

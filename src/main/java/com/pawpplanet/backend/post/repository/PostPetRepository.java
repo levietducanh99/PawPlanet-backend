@@ -15,6 +15,8 @@ public interface PostPetRepository extends JpaRepository<PostPetEntity, Long> {
 
     void deleteByPostId(Long postId);
 
+    int countByPetId(Long petId);
+
 
 
 }

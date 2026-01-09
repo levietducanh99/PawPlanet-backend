@@ -32,6 +32,9 @@ public class PetProfileDTO {
     private boolean isFollowing;
     private boolean canFollow;
 
+    private int likeCount;
+    private int postCount;
+
     // Bổ sung danh sách media
     private List<PetMediaDTO> media;
 }

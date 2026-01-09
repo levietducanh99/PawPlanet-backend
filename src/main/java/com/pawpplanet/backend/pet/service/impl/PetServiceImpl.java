@@ -11,6 +11,9 @@ import com.pawpplanet.backend.pet.repository.PetMediaRepository;
 import com.pawpplanet.backend.pet.repository.PetRepository;
 import com.pawpplanet.backend.pet.service.FollowPetService;
 import com.pawpplanet.backend.pet.service.PetService;
+import com.pawpplanet.backend.post.repository.LikeRepository;
+import com.pawpplanet.backend.post.repository.PostPetRepository;
+import com.pawpplanet.backend.post.repository.PostRepository;
 import com.pawpplanet.backend.user.repository.UserRepository;
 import com.pawpplanet.backend.utils.SecurityHelper;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +41,9 @@ public class PetServiceImpl implements PetService {
     private final FollowPetService followPetService;
     private final CloudinaryUrlBuilder cloudinaryUrlBuilder;
     private final SecurityHelper securityHelper;
+    // Trong PetServiceImpl
+    private final PostPetRepository postPetRepository; // Giả định bạn có repository này
+    private final LikeRepository likeRepository; // Giả định bạn có repository này
 
     @Override
     public PetProfileDTO createPet(CreatePetRequestDTO request) {
@@ -406,6 +412,7 @@ public class PetServiceImpl implements PetService {
 
 
     private PetProfileDTO enrichPetDTO(PetProfileDTO dto, PetEntity pet) {
+        // 1. Giữ nguyên logic cũ về Species, Breed và Owner
         if (pet.getSpeciesId() != null) {
             speciesRepository.findById(pet.getSpeciesId())
                     .ifPresent(s -> dto.setSpeciesName(s.getName()));
@@ -418,29 +425,28 @@ public class PetServiceImpl implements PetService {
             userRepository.findById(pet.getOwnerId())
                     .ifPresent(u -> dto.setOwnerUsername(u.getUsername()));
         }
-        
-        // Computed fields
+
+        // 2. THÊM MỚI: Cập nhật số lượng Like và Post
+        // Bạn gọi hàm count từ repository tương ứng
+        dto.setLikeCount(likeRepository.countLikesByPetId(pet.getId()));
+        dto.setPostCount(postPetRepository.countByPetId(pet.getId()));
+
+        // 3. Giữ nguyên logic cũ về Computed fields (isOwner, isFollowing...)
         Long currentUserId = securityHelper.getCurrentUserId();
         if (currentUserId != null) {
-            // isOwner
             dto.setOwner(currentUserId.equals(pet.getOwnerId()));
-            
-            // isFollowing
             try {
                 dto.setFollowing(followPetService.isFollowingPet(pet.getId()));
             } catch (Exception e) {
                 dto.setFollowing(false);
             }
-            
-            // canFollow = not owner ONLY (do NOT consider following status)
             dto.setCanFollow(!dto.isOwner());
         } else {
-            // User not authenticated
             dto.setOwner(false);
             dto.setFollowing(false);
             dto.setCanFollow(false);
         }
-        
+
         return dto;
     }
 

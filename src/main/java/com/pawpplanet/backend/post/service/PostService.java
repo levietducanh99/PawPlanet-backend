@@ -23,4 +23,5 @@ public interface PostService {
     PostResponse getPostById(Long id);
 
     List<PostResponse> getNewsFeed();
+
 }
