@@ -501,6 +501,76 @@
         }
       }
     },
+    "/api/v1/pets/{petId}/adoption-profile": {
+      "get": {
+        "tags": [
+          "pet-adoption-profile-controller"
+        ],
+        "operationId": "getProfile",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetAdoptionProfileDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "pet-adoption-profile-controller"
+        ],
+        "operationId": "createProfile",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PetAdoptionProfileDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetAdoptionProfileDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pets/{id}/gallery": {
       "post": {
         "tags": [
@@ -2975,6 +3045,53 @@
           },
           "height": {
             "type": "number"
+          }
+        }
+      },
+      "PetAdoptionProfileDto": {
+        "type": "object",
+        "properties": {
+          "petId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "healthStatus": {
+            "type": "string"
+          },
+          "vaccinated": {
+            "type": "boolean"
+          },
+          "sterilized": {
+            "type": "boolean"
+          },
+          "personality": {
+            "type": "string"
+          },
+          "habits": {
+            "type": "string"
+          },
+          "favoriteActivities": {
+            "type": "string"
+          },
+          "careInstructions": {
+            "type": "string"
+          },
+          "diet": {
+            "type": "string"
+          },
+          "adoptionRequirements": {
+            "type": "string"
+          },
+          "reasonForAdoption": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
