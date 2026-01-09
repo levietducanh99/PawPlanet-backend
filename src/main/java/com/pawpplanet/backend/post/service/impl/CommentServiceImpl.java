@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,7 +76,7 @@ public class CommentServiceImpl implements CommentService {
 
         CommentEntity comment = commentRepository.findById(commentId)
                 .orElseThrow(() ->
-                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found")
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy comment")
                 );
 
         if (!comment.getUserId().equals(currentUser.getId())) {
@@ -83,7 +84,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         comment.setIsDeleted(true);
-        comment.setDeletedAt(java.time.LocalDateTime.now());
+        comment.setDeletedAt(LocalDateTime.now());
         comment.setDeletedBy(currentUser.getId());
 
         commentRepository.save(comment);

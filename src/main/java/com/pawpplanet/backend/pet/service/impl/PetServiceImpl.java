@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -362,7 +363,7 @@ public class PetServiceImpl implements PetService {
 
         // Soft delete the pet
         pet.setIsDeleted(true);
-        pet.setDeletedAt(java.time.LocalDateTime.now());
+        pet.setDeletedAt(LocalDateTime.now());
         pet.setDeletedBy(currentUserId);
 
         petRepository.save(pet);
@@ -371,7 +372,7 @@ public class PetServiceImpl implements PetService {
         List<PetMediaEntity> mediaList = petMediaRepository.findByPetId(petId);
         for (PetMediaEntity media : mediaList) {
             media.setIsDeleted(true);
-            media.setDeletedAt(java.time.LocalDateTime.now());
+            media.setDeletedAt(LocalDateTime.now());
             media.setDeletedBy(currentUserId);
         }
         if (!mediaList.isEmpty()) {

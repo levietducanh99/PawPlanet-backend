@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -116,7 +117,7 @@ public class PostServiceImpl implements PostService {
 
         // Soft delete the post
         post.setIsDeleted(true);
-        post.setDeletedAt(java.time.LocalDateTime.now());
+        post.setDeletedAt(LocalDateTime.now());
         post.setDeletedBy(user.getId());
 
         postRepository.save(post);
@@ -125,7 +126,7 @@ public class PostServiceImpl implements PostService {
         List<PostMediaEntity> mediaList = postMediaRepository.findByPostId(postId);
         for (PostMediaEntity media : mediaList) {
             media.setIsDeleted(true);
-            media.setDeletedAt(java.time.LocalDateTime.now());
+            media.setDeletedAt(LocalDateTime.now());
             media.setDeletedBy(user.getId());
         }
         if (!mediaList.isEmpty()) {
