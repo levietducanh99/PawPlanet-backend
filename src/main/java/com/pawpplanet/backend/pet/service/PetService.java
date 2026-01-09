@@ -17,4 +17,6 @@ public interface PetService {
 
     List<AllPetsResponseDTO> getAllMyPets();
 
+    List<AllPetsResponseDTO> getAllUserPets(Long userId);
+
 }

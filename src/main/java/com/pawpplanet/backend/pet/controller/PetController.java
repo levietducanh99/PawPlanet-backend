@@ -50,14 +50,12 @@ public class     PetController {
         return ResponseEntity.ok(pets);
     }
 
-    /**
-     * Add photos/videos to pet gallery
-     * Called after frontend has successfully uploaded to Cloudinary
-     *
-     * @param id The pet ID
-     * @param request Request containing media URLs from Cloudinary
-     * @return Response with added media details
-     */
+    @GetMapping("/my-pets/{id}")
+    public ResponseEntity<List<AllPetsResponseDTO>> getAllUserPets(@PathVariable Long id) {
+        List<AllPetsResponseDTO> pets = petService.getAllUserPets(id);
+        return ResponseEntity.ok(pets);
+    }
+
     @PostMapping("/{id}/gallery")
     public ResponseEntity<AddPetMediaResponse> addMediaToGallery(
             @PathVariable Long id,

@@ -380,9 +380,31 @@ public class PetServiceImpl implements PetService {
         }
     }
 
+    @Override
+    public List<AllPetsResponseDTO> getAllUserPets( Long id){
+
+        List<PetEntity> pets = petRepository.findByOwnerId(id);
+
+        return pets.stream()
+                .map(pet -> {
+                    List<PetMediaEntity> media = petMediaRepository.findByPetId(pet.getId());
+                    AllPetsResponseDTO dto = new AllPetsResponseDTO();
+                    dto.setId(pet.getId());
+                    dto.setName(pet.getName());
+                    dto.setAvatar(getAvatarFromMedia(media));
+                    if (pet.getSpeciesId() != null) {
+                        speciesRepository.findById(pet.getSpeciesId())
+                                .ifPresent(s -> dto.setSpeciesName(s.getName()));
+                    }
+                    return dto;
+                })
+                .toList();
 
 
-    // HÀM MỚI THÊM VÀO
+    }
+
+
+
     private PetProfileDTO enrichPetDTO(PetProfileDTO dto, PetEntity pet) {
         if (pet.getSpeciesId() != null) {
             speciesRepository.findById(pet.getSpeciesId())
