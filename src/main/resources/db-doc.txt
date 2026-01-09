@@ -21,6 +21,29 @@ DESIGN PRINCIPLES:
 * Sub-taxonomy: chi tiết hơn species, dùng cho hiển thị & phân loại
 * Breed = một loại sub-taxonomy, không phải cấp duy nhất
 * Section & Attribute để tránh hard-code
+
+MIGRATION HISTORY:
+
+* V1: Initial schema - All base tables
+* V2: Add new tables for notifications and other features
+* V3: Add taxonomy_type to breeds (breed | subspecies)
+* V4: Remove breed_section_mapping table
+* V5: Add display_order to species_section_contents
+* V6: Add slug fields to encyclopedia tables (classes, species, breeds)
+* V7: Add weight and height fields to pets table
+* V8: Add public_id fields for Cloudinary integration
+  - Added to: pet_media, post_media, users (avatar & cover)
+  - Added full_name and cover_image_url to users
+* V9: Redesign notifications table with flexible JSONB metadata
+* V10: Add soft delete fields (is_deleted, deleted_at, deleted_by)
+  - Added to: encyclopedia.media, social.posts, pet.pets, social.comments, social.post_media, pet.pet_media
+
+CURRENT STATUS (as of January 2026):
+* Latest migration: V10
+* Total schemas: 4 (auth, encyclopedia, pet, social, notification)
+* Cloudinary integration: Complete with public_id based URL building
+* Soft delete: Implemented on major entities
+* Notifications: Flexible JSONB-based system
   '''
   }
 
@@ -42,7 +65,7 @@ cover_image_url text [note: 'URL ảnh bìa profile (V8)']
 bio text [note: 'Mô tả hồ sơ']
 is_verified boolean [note: 'Xác minh email']
 created_at timestamp [note: 'Thời điểm tạo']
-deleted_at timestamp [note: 'Soft delete']
+deleted_at timestamp [note: 'Soft delete (legacy field)']
 
 Indexes {
   avatar_public_id
@@ -54,6 +77,9 @@ V8 Migration:
 - Added full_name for display name
 - Added avatar_public_id & cover_image_public_id for Cloudinary integration
 - avatar_url and cover_image_url are built from public_id for optimization
+
+Note: Users table does not have soft delete fields (is_deleted, deleted_by) from V10 migration.
+Only deleted_at is available as legacy field.
 '''
 }
 
@@ -243,10 +269,16 @@ type varchar [note: 'image | video']
 role varchar [note: 'hero | gallery | thumbnail']
 url text
 display_order int
+is_deleted boolean [default: false, note: 'Soft delete flag (V10)']
+deleted_at timestamp [note: 'Soft delete timestamp (V10)']
+deleted_by bigint [note: 'User ID who deleted (V10)']
 
 Note: '''
 Media polymorphic cho Encyclopedia.
 Gallery Species = entity_type=species
+
+V10 Migration:
+- Added soft delete fields (is_deleted, deleted_at, deleted_by)
 '''
 }
 
@@ -262,13 +294,17 @@ breed_id bigint [ref: > encyclopedia.breeds.id]
 birth_date date [note: 'Ngày sinh (nullable nếu không rõ)']
 gender varchar
 description text [note: 'Giới thiệu pet']
-status varchar [note: 'owned | for_adoption']
+status varchar [note: 'owned | for_adoption | private']
 owner_id bigint [ref: > auth.users.id]
 weight numeric [note: 'Cân nặng (kg) - V7']
 height numeric [note: 'Chiều cao (cm) - V7']
+is_deleted boolean [default: false, note: 'Soft delete flag (V10)']
+deleted_at timestamp [note: 'Soft delete timestamp (V10)']
+deleted_by bigint [note: 'User ID who deleted (V10)']
 
 Note: '''
 V7 Migration: Added weight and height fields
+V10 Migration: Added soft delete fields (is_deleted, deleted_at, deleted_by)
 '''
 }
 
@@ -308,6 +344,9 @@ role varchar [note: 'avatar | gallery']
 public_id text [note: 'Cloudinary public ID (V8)']
 url text [note: 'Đường dẫn media (built from public_id)']
 display_order int [note: 'Thứ tự hiển thị']
+is_deleted boolean [default: false, note: 'Soft delete flag (V10)']
+deleted_at timestamp [note: 'Soft delete timestamp (V10)']
+deleted_by bigint [note: 'User ID who deleted (V10)']
 
 Indexes {
   public_id
@@ -319,6 +358,9 @@ Media riêng của pet (không phải media của post)
 V8 Migration:
 - Added public_id for Cloudinary integration
 - URL is built dynamically from public_id with optimizations
+
+V10 Migration:
+- Added soft delete fields (is_deleted, deleted_at, deleted_by)
 '''
 }
 
@@ -349,12 +391,18 @@ type varchar [note: 'normal | adoption | sale']
 contact_info varchar [note: 'Thông tin liên hệ nếu là adoption/sale']
 location varchar [note: 'Địa điểm']
 created_at timestamp [note: 'Thời điểm tạo']
-deleted_at timestamp [note: 'Soft delete']
+deleted_at timestamp [note: 'Soft delete timestamp (legacy + V10)']
+is_deleted boolean [default: false, note: 'Soft delete flag (V10)']
+deleted_by bigint [note: 'User ID who deleted (V10)']
 
 Note: '''
 Bài viết mạng xã hội.
 Có thể gắn nhiều pet.
 Có comment, like, media.
+
+V10 Migration:
+- Added is_deleted and deleted_by fields
+- deleted_at already existed from earlier migrations
 '''
 }
 
@@ -383,6 +431,9 @@ Table social.post_media {
   public_id text [note: 'Cloudinary public ID (V8)']
   url text [note: 'Đường dẫn media (built from public_id)']
   display_order int [note: 'Thứ tự hiển thị']
+  is_deleted boolean [default: false, note: 'Soft delete flag (V10)']
+  deleted_at timestamp [note: 'Soft delete timestamp (V10)']
+  deleted_by bigint [note: 'User ID who deleted (V10)']
 
   Indexes {
     public_id
@@ -394,9 +445,11 @@ Table social.post_media {
   V8 Migration:
   - Added public_id for Cloudinary integration
   - URL is built dynamically from public_id
+
+  V10 Migration:
+  - Added soft delete fields (is_deleted, deleted_at, deleted_by)
   '''
 }
-
 // ---------- COMMENTS (CÓ REPLY) ----------
 
 Table social.comments {
@@ -406,11 +459,17 @@ user_id bigint [ref: > auth.users.id, note: 'Người comment']
 parent_id bigint [ref: > social.comments.id, note: 'Comment cha (reply)']
 content text [note: 'Nội dung comment']
 created_at timestamp [note: 'Thời điểm tạo']
-deleted_at timestamp [note: 'Soft delete']
+deleted_at timestamp [note: 'Soft delete timestamp (legacy + V10)']
+is_deleted boolean [default: false, note: 'Soft delete flag (V10)']
+deleted_by bigint [note: 'User ID who deleted (V10)']
 
 Note: '''
 Comment dạng tree (parent_id).
 NULL parent_id = comment gốc.
+
+V10 Migration:
+- Added is_deleted and deleted_by fields
+- deleted_at already existed from earlier migrations
 '''
 }
 
