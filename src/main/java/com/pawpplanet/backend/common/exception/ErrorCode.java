@@ -18,6 +18,7 @@ public enum ErrorCode {
     FOLLOW_RELATIONSHIP_NOT_FOUND(404, "Follow relationship not found"),
     INTERNAL_SERVER_ERROR(500, "Internal server error"),
     INVALID_CREDENTIALS(401, "Invalid credentials"),
+    INVALID_REQUEST(400, "Invalid request"),
 
     SAME_PASSWORD(400, "New password cannot be the same as the old password"),
 

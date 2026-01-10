@@ -106,6 +106,7 @@ public class SecurityConfig {
                                 "/api/v1/posts/**",
                                 "/api/v1/users/**",
                                 "/api/v1/pets/**",
+                                "/api/v1/search/**",
                                 "/api/v1/encyclopedia/**").permitAll().anyRequest().authenticated());
 
         http.
