@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 
 @Slf4j
@@ -59,8 +61,11 @@ public class GoogleTokenVerifier {
             log.info("Successfully verified Google token for user: {}", email);
             return userInfo;
 
-        } catch (Exception e) {
-            log.error("Failed to verify Google token", e);
+        } catch (GeneralSecurityException e) {
+            log.error("Security error while verifying Google token", e);
+            throw new AppException(ErrorCode.INVALID_GOOGLE_TOKEN);
+        } catch (IOException e) {
+            log.error("I/O error while verifying Google token", e);
             throw new AppException(ErrorCode.INVALID_GOOGLE_TOKEN);
         }
     }

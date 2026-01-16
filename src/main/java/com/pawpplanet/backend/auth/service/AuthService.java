@@ -162,9 +162,11 @@ public class AuthService {
     }
     
     private String generateUniqueUsername(String baseUsername) {
+        final String DEFAULT_USERNAME_PREFIX = "user";
+        
         String username = baseUsername.replaceAll("[^a-zA-Z0-9_]", "");
         if (username.isEmpty()) {
-            username = "user";
+            username = DEFAULT_USERNAME_PREFIX;
         }
         
         // Check if username exists, if so append numbers
