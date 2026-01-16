@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     boolean existsByUsername(String username);
 
+    Optional<UserEntity> findByAuthProviderAndProviderUserId(String authProvider, String providerUserId);
+
     @Query("SELECT u FROM UserEntity u WHERE " +
            "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) AND " +
            "u.deletedAt IS NULL")

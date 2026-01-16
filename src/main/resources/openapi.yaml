@@ -58,6 +58,10 @@
       "description": "Search across classes, species and breeds"
     },
     {
+      "name": "Global Search",
+      "description": "Search across users and pets"
+    },
+    {
       "name": "Encyclopedia - Media",
       "description": "API quản lý media của encyclopedia"
     }
@@ -1102,6 +1106,38 @@
         }
       }
     },
+    "/api/v1/auth/google": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Đăng nhập với Google",
+        "description": "Xác thực Google ID token và tạo/đăng nhập người dùng",
+        "operationId": "loginWithGoogle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/forgot-password": {
       "post": {
         "tags": [
@@ -1286,6 +1322,58 @@
         }
       }
     },
+    "/api/v1/search": {
+      "get": {
+        "tags": [
+          "Global Search"
+        ],
+        "summary": "Global search for users and pets",
+        "description": "Search for users by username and pets by name or breed. Keyword must be at least 2 characters. Use 'types' parameter to filter results (user, pet, or both).",
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search keyword (minimum 2 characters)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "description": "Entity types to search (comma-separated: user, pet). If not specified, searches all types.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results per type (default: 10)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/posts/user/{userId}": {
       "get": {
         "tags": [
@@ -1313,6 +1401,50 @@
                   "items": {
                     "$ref": "#/components/schemas/PostResponse"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/urgent": {
+      "get": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "getUrgentPosts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/urgent/count": {
+      "get": {
+        "tags": [
+          "post-controller"
+        ],
+        "operationId": "countUrgentPosts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
                 }
               }
             }
@@ -1370,54 +1502,6 @@
                   "items": {
                     "$ref": "#/components/schemas/PostResponse"
                   }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/posts/urgent": {
-      "get": {
-        "tags": [
-          "post-controller"
-        ],
-        "operationId": "getUrgentPosts",
-        "summary": "Get all posts with type urgent",
-        "description": "Returns all posts that have type set to 'urgent', ordered by creation date descending",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PostResponse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/posts/urgent/count": {
-      "get": {
-        "tags": [
-          "post-controller"
-        ],
-        "operationId": "countUrgentPosts",
-        "summary": "Count all posts with type urgent",
-        "description": "Returns the total count of posts that have type set to 'urgent'",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64"
                 }
               }
             }
@@ -1974,7 +2058,7 @@
           "Encyclopedia - Species"
         ],
         "summary": "Tìm kiếm species theo từ khoá (name hoặc scientificName)",
-        "operationId": "search",
+        "operationId": "search_1",
         "parameters": [
           {
             "name": "q",
@@ -2057,7 +2141,7 @@
           "Encyclopedia - Search"
         ],
         "summary": "Tìm kiếm theo từ khoá across classes/species/breeds",
-        "operationId": "search_1",
+        "operationId": "search_2",
         "parameters": [
           {
             "name": "q",
@@ -2580,6 +2664,39 @@
         }
       }
     },
+    "/api/v1/pets/{petId}/gallery/{mediaId}": {
+      "delete": {
+        "tags": [
+          "pet-controller"
+        ],
+        "operationId": "deletePetMedia",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/notifications/{notificationId}": {
       "delete": {
         "tags": [
@@ -2609,6 +2726,37 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/encyclopedia/media/{mediaId}": {
+      "delete": {
+        "tags": [
+          "Encyclopedia - Media"
+        ],
+        "summary": "[ADMIN] Xóa media khỏi encyclopedia",
+        "description": "Chỉ admin mới có thể xóa ảnh/video khỏi encyclopedia (soft delete).",
+        "operationId": "deleteEncyclopediaMedia",
+        "parameters": [
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         },
         "security": [
@@ -2723,17 +2871,6 @@
           }
         }
       },
-      "MediaUrlRequest": {
-        "type": "object",
-        "properties": {
-          "publicId": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        }
-      },
       "UpdatePostRequest": {
         "type": "object",
         "properties": {
@@ -2757,12 +2894,6 @@
             "items": {
               "type": "integer",
               "format": "int64"
-            }
-          },
-          "mediaUrls": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MediaUrlRequest"
             }
           }
         }
@@ -3055,6 +3186,17 @@
             "items": {
               "$ref": "#/components/schemas/MediaUrlRequest"
             }
+          }
+        }
+      },
+      "MediaUrlRequest": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
           }
         }
       },
@@ -3475,6 +3617,15 @@
           "role": {
             "type": "string"
           },
+          "authProvider": {
+            "type": "string"
+          },
+          "providerUserId": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
           "fullName": {
             "type": "string"
           },
@@ -3535,6 +3686,9 @@
           "token": {
             "type": "string"
           },
+          "refreshToken": {
+            "type": "string"
+          },
           "authenticated": {
             "type": "boolean"
           }
@@ -3579,6 +3733,17 @@
         "properties": {
           "valid": {
             "type": "boolean"
+          }
+        }
+      },
+      "GoogleLoginRequest": {
+        "required": [
+          "idToken"
+        ],
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string"
           }
         }
       },
@@ -3660,6 +3825,62 @@
           "statusCode": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "GlobalSearchResponse": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchUserDTO"
+            }
+          },
+          "pets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchPetDTO"
+            }
+          }
+        }
+      },
+      "SearchPetDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "species": {
+            "type": "string"
+          },
+          "breed": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "SearchUserDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
           }
         }
       },

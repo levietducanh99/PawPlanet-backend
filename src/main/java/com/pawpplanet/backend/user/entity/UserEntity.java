@@ -28,6 +28,15 @@ public class UserEntity {
 
     private String role;
 
+    @Column(name = "auth_provider", nullable = false)
+    private String authProvider = "LOCAL";
+
+    @Column(name = "provider_user_id")
+    private String providerUserId;
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified;
+
     @Column(name = "full_name")
     private String fullName;  // Tên đầy đủ của user
 
@@ -65,6 +74,12 @@ public class UserEntity {
         }
         if (isVerified == null) {
             isVerified = false;
+        }
+        if (authProvider == null) {
+            authProvider = "LOCAL";
+        }
+        if (emailVerified == null) {
+            emailVerified = false;
         }
     }
 }
