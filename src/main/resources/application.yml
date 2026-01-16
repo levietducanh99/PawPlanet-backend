@@ -71,6 +71,9 @@ jwt:
     refreshable-ms: 86400000  # 1 day in milliseconds
     valid-ms: 3600000  # 1 hour in milliseconds
 
+google:
+    client-id: ${GOOGLE_CLIENT_ID:your-google-client-id.apps.googleusercontent.com}
+
 
 # Note: DATABASE_URL is loaded from .env and converted to JDBC format by DotenvConfig.
 # DotenvConfig sets: spring.datasource.url, spring.datasource.username, spring.datasource.password

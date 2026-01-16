@@ -55,6 +55,20 @@ public class AuthController {
         return response;
     }
 
+    @PostMapping("/google")
+    @Operation(
+            summary = "Đăng nhập với Google",
+            description = "Xác thực Google ID token và tạo/đăng nhập người dùng"
+    )
+    public ApiResponse<AuthResponse> loginWithGoogle(@RequestBody @Valid GoogleLoginRequest request) {
+        ApiResponse<AuthResponse> response = new ApiResponse<>();
+        
+        response.setResult(
+                authService.loginWithGoogle(request.getIdToken())
+        );
+        return response;
+    }
+
     @PostMapping("/introspect")
     @Operation(
             summary = "Xác thực token",

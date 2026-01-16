@@ -19,6 +19,7 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(500, "Internal server error"),
     INVALID_CREDENTIALS(401, "Invalid credentials"),
     INVALID_REQUEST(400, "Invalid request"),
+    INVALID_GOOGLE_TOKEN(401, "Invalid or expired Google token"),
 
     SAME_PASSWORD(400, "New password cannot be the same as the old password"),
 

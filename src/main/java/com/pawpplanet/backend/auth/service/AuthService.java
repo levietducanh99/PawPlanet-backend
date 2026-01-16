@@ -6,6 +6,7 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.pawpplanet.backend.auth.dto.TokenType;
+import com.pawpplanet.backend.auth.dto.GoogleUserInfo;
 import com.pawpplanet.backend.auth.dto.request.*;
 import com.pawpplanet.backend.auth.dto.response.AuthResponse;
 import com.pawpplanet.backend.auth.dto.response.IntrospectResponse;
@@ -34,6 +35,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -44,6 +46,8 @@ public class AuthService {
     private UserRepository userRepository;
 
     private InvalidatedTokenRepository invalidatedTokenRepository;
+    
+    private final GoogleTokenVerifier googleTokenVerifier;
 
     @Autowired
     private MailService mailService;
@@ -97,11 +101,79 @@ public class AuthService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        String gerneratedToken = generateToken(user, TokenType.ACCESS.name());
+        String accessToken = generateToken(user, TokenType.ACCESS.name());
+        String refreshToken = generateToken(user, TokenType.REFRESH.name());
+        
         AuthResponse authResponse = new AuthResponse();
-        authResponse.setToken(gerneratedToken);
+        authResponse.setToken(accessToken);
+        authResponse.setRefreshToken(refreshToken);
         authResponse.setAuthenticated(true);
         return authResponse;
+    }
+
+    public AuthResponse loginWithGoogle(String idToken) {
+        // Verify Google token and extract user info
+        GoogleUserInfo googleUserInfo = googleTokenVerifier.verifyToken(idToken);
+        
+        // Check if user already exists with this Google account
+        Optional<UserEntity> existingUser = userRepository.findByAuthProviderAndProviderUserId(
+                "GOOGLE", googleUserInfo.getSub());
+        
+        UserEntity user;
+        if (existingUser.isPresent()) {
+            // User exists, login
+            user = existingUser.get();
+            log.info("Existing Google user logged in: {}", user.getEmail());
+        } else {
+            // Create new user
+            user = new UserEntity();
+            user.setAuthProvider("GOOGLE");
+            user.setProviderUserId(googleUserInfo.getSub());
+            user.setEmail(googleUserInfo.getEmail());
+            user.setEmailVerified(googleUserInfo.getEmailVerified());
+            user.setFullName(googleUserInfo.getName());
+            user.setAvatarUrl(googleUserInfo.getPicture());
+            
+            // Generate unique username from email
+            String baseUsername = googleUserInfo.getEmail().split("@")[0];
+            String username = generateUniqueUsername(baseUsername);
+            user.setUsername(username);
+            
+            // For OAuth users, password is not used but required by schema
+            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+            user.setRole(Role.USER.name());
+            user.setIsVerified(true); // Google users are pre-verified
+            
+            user = userRepository.save(user);
+            log.info("New Google user created: {}", user.getEmail());
+        }
+        
+        // Generate tokens
+        String accessToken = generateToken(user, TokenType.ACCESS.name());
+        String refreshToken = generateToken(user, TokenType.REFRESH.name());
+        
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setToken(accessToken);
+        authResponse.setRefreshToken(refreshToken);
+        authResponse.setAuthenticated(true);
+        return authResponse;
+    }
+    
+    private String generateUniqueUsername(String baseUsername) {
+        String username = baseUsername.replaceAll("[^a-zA-Z0-9_]", "");
+        if (username.isEmpty()) {
+            username = "user";
+        }
+        
+        // Check if username exists, if so append numbers
+        String finalUsername = username;
+        int counter = 1;
+        while (userRepository.existsByUsername(finalUsername)) {
+            finalUsername = username + counter;
+            counter++;
+        }
+        
+        return finalUsername;
     }
 
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
@@ -219,9 +291,12 @@ public class AuthService {
         String userEmail = signedJWT.getJWTClaimsSet().getSubject();
         UserEntity userEntity = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        String gerneratedToken = generateToken(userEntity, TokenType.REFRESH.name());
+        String accessToken = generateToken(userEntity, TokenType.ACCESS.name());
+        String refreshToken = generateToken(userEntity, TokenType.REFRESH.name());
+        
         AuthResponse authResponse = new AuthResponse();
-        authResponse.setToken(gerneratedToken);
+        authResponse.setToken(accessToken);
+        authResponse.setRefreshToken(refreshToken);
         authResponse.setAuthenticated(true);
         return authResponse;
     }
