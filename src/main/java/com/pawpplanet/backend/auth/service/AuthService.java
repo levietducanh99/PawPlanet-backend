@@ -43,14 +43,11 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
-
     private final InvalidatedTokenRepository invalidatedTokenRepository;
-    
     private final GoogleTokenVerifier googleTokenVerifier;
 
     @Autowired
     private MailService mailService;
-
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
