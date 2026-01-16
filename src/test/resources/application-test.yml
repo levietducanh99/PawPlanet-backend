@@ -28,6 +28,10 @@ jwt:
   secret: ${JWT_SECRET:test-secret-key-for-testing-minimum-256-bits-required}
   expiration: 3600000
 
+# Google OAuth configuration (using dummy values for tests)
+google:
+  client-id: ${GOOGLE_CLIENT_ID:test-google-client-id.apps.googleusercontent.com}
+
 # Cloudinary configuration (using dummy values for tests)
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:test-cloud}

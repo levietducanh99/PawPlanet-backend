@@ -40,12 +40,11 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AuthService {
 
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    private InvalidatedTokenRepository invalidatedTokenRepository;
+    private final InvalidatedTokenRepository invalidatedTokenRepository;
     
     private final GoogleTokenVerifier googleTokenVerifier;
 
@@ -65,9 +64,12 @@ public class AuthService {
     protected Long TOKEN_REFRESHABLE_MS;
 
     @Autowired
-    public AuthService(UserRepository userRepository, InvalidatedTokenRepository invalidatedTokenRepository) {
+    public AuthService(UserRepository userRepository, 
+                      InvalidatedTokenRepository invalidatedTokenRepository,
+                      GoogleTokenVerifier googleTokenVerifier) {
         this.userRepository = userRepository;
         this.invalidatedTokenRepository = invalidatedTokenRepository;
+        this.googleTokenVerifier = googleTokenVerifier;
     }
 
 
