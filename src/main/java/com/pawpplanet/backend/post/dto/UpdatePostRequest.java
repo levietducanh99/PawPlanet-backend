@@ -19,6 +19,4 @@ public class UpdatePostRequest {
     private String location;
 
     private List<Long> petIds;
-
-    private List<MediaUrlRequest> mediaUrls;
 }

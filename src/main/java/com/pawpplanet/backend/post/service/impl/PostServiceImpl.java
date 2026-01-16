@@ -91,17 +91,19 @@ public class PostServiceImpl implements PostService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền sửa");
         }
 
+        // Update only basic fields (content, hashtags, type, contactInfo, location)
         post.setContent(request.getContent());
         post.setHashtags(request.getHashtags());
         post.setType(request.getType());
         post.setContactInfo(request.getContactInfo());
         post.setLocation(request.getLocation());
 
-        postMediaRepository.deleteByPostId(postId);
-        postPetRepository.deleteByPostId(postId);
-
-        savePostMedia(postId, request.getMediaUrls());
-        savePostPets(postId, request.getPetIds());
+        // DO NOT allow updating media - media cannot be edited after post creation
+        // Only update petIds if provided
+        if (request.getPetIds() != null) {
+            postPetRepository.deleteByPostId(postId);
+            savePostPets(postId, request.getPetIds());
+        }
 
         return buildPostResponse(postRepository.save(post), user);
     }
